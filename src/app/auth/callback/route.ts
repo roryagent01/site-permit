@@ -29,6 +29,27 @@ async function bootstrapWorkspaceForUser(userId: string, email?: string | null) 
     user_id: userId,
     role: 'owner'
   });
+
+  await supabase.from('sites').insert({
+    workspace_id: workspace.id,
+    name: 'Main Site'
+  });
+
+  await supabase.from('qualification_types').insert([
+    { workspace_id: workspace.id, name: 'Manual Handling', validity_months: 24, evidence_required: true },
+    { workspace_id: workspace.id, name: 'Working at Height', validity_months: 24, evidence_required: true },
+    { workspace_id: workspace.id, name: 'Confined Space', validity_months: 24, evidence_required: true },
+    { workspace_id: workspace.id, name: 'Electrical', validity_months: 24, evidence_required: true },
+    { workspace_id: workspace.id, name: 'Insurance', validity_months: 12, evidence_required: true },
+    { workspace_id: workspace.id, name: 'RAMS Review', validity_months: 12, evidence_required: false }
+  ]);
+
+  await supabase.from('reminder_settings').upsert({
+    workspace_id: workspace.id,
+    windows_days: [30, 14, 7],
+    digest_enabled: true,
+    updated_at: new Date().toISOString()
+  });
 }
 
 export async function GET(request: Request) {
