@@ -2,8 +2,12 @@ import { NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { reminderDigestEmailHtml, sendEmail } from '@/lib/notifications/email';
 import { getWorkspaceRoleRecipientEmails } from '@/lib/notifications/workspace-recipients';
+import { enforceRateLimit, requestIp } from '@/lib/security/rate-limit';
 
 export async function POST(request: Request) {
+  const rl = enforceRateLimit(`reminder-digest:${requestIp(request.headers)}`, 10, 60_000);
+  if (!rl.allowed) return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
+
   const cronSecret = process.env.CRON_SECRET;
   const provided = request.headers.get('x-cron-secret');
   if (!cronSecret || provided !== cronSecret) {

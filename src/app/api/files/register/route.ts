@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentWorkspace } from '@/lib/workspace/current';
 import { logAuditEvent } from '@/lib/audit/events';
+import { enforceRateLimit, requestIp } from '@/lib/security/rate-limit';
 
 const schema = z.object({
   bucket: z.enum(['permit_attachments', 'qualification_evidence']),
@@ -13,6 +14,9 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
+  const rl = enforceRateLimit(`files-register:${requestIp(request.headers)}`, 120, 60_000);
+  if (!rl.allowed) return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
+
   const ctx = await getCurrentWorkspace();
   if (!ctx) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 

@@ -3,8 +3,17 @@
 import { useEffect, useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 
-export function PermitLiveStatus({ permitId, initialStatus }: { permitId: string; initialStatus: string }) {
+export function PermitLiveStatus({
+  permitId,
+  initialStatus,
+  initialApprovalCount
+}: {
+  permitId: string;
+  initialStatus: string;
+  initialApprovalCount: number;
+}) {
   const [status, setStatus] = useState(initialStatus);
+  const [approvalCount, setApprovalCount] = useState(initialApprovalCount);
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -19,6 +28,11 @@ export function PermitLiveStatus({ permitId, initialStatus }: { permitId: string
           if (next?.status) setStatus(next.status);
         }
       )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'permit_approvals', filter: `permit_id=eq.${permitId}` },
+        () => setApprovalCount((c) => c + 1)
+      )
       .subscribe();
 
     return () => {
@@ -26,5 +40,9 @@ export function PermitLiveStatus({ permitId, initialStatus }: { permitId: string
     };
   }, [permitId]);
 
-  return <p className="text-sm text-slate-600">Live status: {status}</p>;
+  return (
+    <p className="text-sm text-slate-600">
+      Live status: {status} • Approval events: {approvalCount}
+    </p>
+  );
 }

@@ -428,7 +428,7 @@ export default async function PermitDetailPage({ params }: { params: Promise<{ i
               Approval progress: {Math.min(stepState.approvedCount, stepState.totalSteps)}/{stepState.totalSteps}
               {stepState.nextRole ? ` • Waiting on: ${stepState.nextRole}` : ' • Complete'}
             </p>
-            <PermitLiveStatus permitId={permit.id} initialStatus={permit.status} />
+            <PermitLiveStatus permitId={permit.id} initialStatus={permit.status} initialApprovalCount={approvals?.length ?? 0} />
             <p className="mt-2 text-sm text-slate-700">Location: {(permit.payload as { location?: string })?.location ?? '-'}</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <form action={transitionPermitAction}>

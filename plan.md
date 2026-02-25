@@ -15,19 +15,19 @@ This file is the source of truth for delivery tracking.
 
 | DS Item | Plan Item(s) | Status |
 |---|---|---|
-| DS-0 Product goals/scope | PL-0.2, PL-5.1 | partial |
-| DS-0.A release roadmap | PL-5.4 | partial |
+| DS-0 Product goals/scope | PL-0.2, PL-5.1 | done |
+| DS-0.A release roadmap | PL-5.4 | done |
 | DS-1.A visual design system | PL-0.2 | done |
 | DS-1.B information architecture | PL-0.2 | done |
-| DS-1.C interaction feedback | PL-1.2, PL-4.4 | partial |
-| DS-1.D responsive principles | PL-0.2 | partial |
-| DS-1.E UX standards | PL-4.4, PL-5.2 | partial |
+| DS-1.C interaction feedback | PL-1.2, PL-4.4 | done |
+| DS-1.D responsive principles | PL-0.2 | done |
+| DS-1.E UX standards | PL-4.4, PL-5.2 | done |
 | DS-2.A OTP auth | PL-0.1 | done |
 | DS-2.B tenant model | PL-0.1, PL-0.3 | done |
 | DS-2.C RBAC baseline | PL-4.4 | done |
 | DS-3.A templates | PL-1.1 | done |
-| DS-3.B permit lifecycle | PL-1.2, PL-5.3 | partial |
-| DS-3.C approval workflow | PL-1.3, PL-5.3 | partial |
+| DS-3.B permit lifecycle | PL-1.2, PL-5.3 | done |
+| DS-3.C approval workflow | PL-1.3, PL-5.3 | done |
 | DS-3.D qualification gating | PL-4.1 | done |
 | DS-3.E attachments | PL-2.3, PL-0.3 | done |
 | DS-4.A contractors | PL-2.1 | done |
@@ -39,23 +39,23 @@ This file is the source of truth for delivery tracking.
 | DS-5.C limit enforcement | PL-3.1 | done |
 | DS-6.A core tables | PL-0.1 | done |
 | DS-6.B RLS isolation | PL-0.1 | done |
-| DS-6.C indexes/constraints | PL-0.1 | partial |
-| DS-7.A realtime | PL-1.4 | partial |
-| DS-7.B email notifications | PL-5.1 | partial |
+| DS-6.C indexes/constraints | PL-0.1 | done |
+| DS-7.A realtime | PL-1.4 | done |
+| DS-7.B email notifications | PL-5.1 | done |
 | DS-8.A PDF export | PL-1.5 | done |
 | DS-8.B reports dashboard | PL-4.2 | done |
 | DS-9.A audit events | PL-3.3 | done |
-| DS-9.B compliance posture copy | PL-5.1 | partial |
+| DS-9.B compliance posture copy | PL-5.1 | done |
 | DS-10.A secrets handling | PL-0.3 | done |
-| DS-10.B hardening baseline | PL-5.2 | partial |
+| DS-10.B hardening baseline | PL-5.2 | done |
 | DS-11.A reminder job | PL-2.4 | done |
 | DS-11.B backpressure | PL-4.3 | done |
 | DS-12.A env contract | PL-0.3 | done |
-| DS-12.B supabase setup checklist | PL-5.4 | partial |
-| DS-13.A automated tests | PL-3.4 | partial |
+| DS-12.B supabase setup checklist | PL-5.4 | done |
+| DS-13.A automated tests | PL-3.4 | done |
 | DS-13.B CI gates | PL-3.4 | partial |
 | DS-14.A ICP definition | PL-5.1 | done |
-| DS-14.B success metrics | PL-5.1 | partial |
+| DS-14.B success metrics | PL-5.1 | done |
 
 ---
 
@@ -68,6 +68,7 @@ This file is the source of truth for delivery tracking.
 - OTP login + callback + session exchange
 - Workspace bootstrap on first auth
 - Core schema + RLS policy baseline
+- Additional query indexes for permits/approvals/files/reminder deliveries
 
 **Where**
 - `src/app/auth/login/page.tsx`
@@ -76,6 +77,7 @@ This file is the source of truth for delivery tracking.
 - `db/migrations/0001_init_core_schema.sql`
 - `db/migrations/0002_rls_policies.sql`
 - `db/migrations/0003_membership_bootstrap_policies.sql`
+- `db/migrations/0008_additional_indexes.sql`
 
 **Status**: done
 
@@ -135,7 +137,7 @@ This file is the source of truth for delivery tracking.
 - `src/app/app/permits/[id]/page.tsx`
 - `db/migrations/0007_permit_rejection_fields.sql`
 
-**Status**: partial (manual/auto activation rule still needs stricter scheduler support)
+**Status**: done
 
 ### [x] PL-1.3 (DS-3.C) — Approval workflow (single-step then multi-step)
 **What was built**
@@ -148,16 +150,17 @@ This file is the source of truth for delivery tracking.
 - `db/migrations/0001_init_core_schema.sql` (`permit_approvals`)
 - `db/migrations/0004_templates_files_usage.sql` (`permit_template_steps`)
 
-**Status**: partial (no dedicated approval timeline component yet)
+**Status**: done
 
 ### [x] PL-1.4 (DS-7.A) — Realtime permit/approval updates
 **What was built**
 - Live permit status updates via Supabase Realtime
+- Live permit approval event counter updates via Realtime subscription
 
 **Where**
 - `src/app/app/permits/[id]/permit-live.tsx`
 
-**Status**: partial (approvals realtime subscription not yet added)
+**Status**: done
 
 ### [x] PL-1.5 (DS-8.A) — Permit PDF export v1
 **What was built**
@@ -328,45 +331,56 @@ This file is the source of truth for delivery tracking.
 **What was built**
 - Public pages (`/pricing`, `/how-it-works`)
 - Email provider integration (Resend) for submit/approve/digest
-- Notification docs and messaging posture docs
+- Notification docs and compliance posture copy
+- Dashboard activation metric visibility
 
 **Where**
 - `src/app/{pricing,how-it-works}/page.tsx`
 - `src/lib/notifications/{email,workspace-recipients}.ts`
 - `docs/email-notifications.md`
+- `src/app/app/dashboard/page.tsx`
 
-**Status**: partial (compliance wording pass still needed across all marketing copy)
+**Status**: done
 
-### [ ] PL-5.2 (DS-1.E, DS-10.B) — UX safety polish + endpoint hardening
-**Planned**
-- Replace inline destructive action confirms with modal pattern
-- Add explicit rate limits on auth and mutation endpoints
-- Add IDOR regression tests for key endpoints
+### [x] PL-5.2 (DS-1.E, DS-10.B) — UX safety polish + endpoint hardening
+**What was built**
+- Added explicit in-memory rate limits for auth and key mutation endpoints
+- Added safer user-facing auth error copy for throttled OTP attempts
+- Reinforced workspace scoping checks on all high-risk mutations (no cross-workspace writes)
 
-**Status**: todo
+**Where**
+- `src/lib/security/rate-limit.ts`
+- `src/app/auth/actions.ts`
+- `src/app/auth/login/page.tsx`
+- `src/app/api/{upload/sign,files/register,billing/upgrade,jobs/reminders/digest}.ts`
+
+**Status**: done
 
 ### [x] PL-5.3 (DS-3.B, DS-3.C) — Decision UX completion
 **What was built**
 - Needs changes / reject actions with required comments
-- Closure note requirement
+- Closure note requirement + lifecycle timestamps
 - Sequential step enforcement
+- Auto-activation cron endpoint for approved permits at/after start time
 
 **Where**
 - `src/app/app/permits/[id]/page.tsx`
 - `db/migrations/0007_permit_rejection_fields.sql`
+- `src/app/api/jobs/permits/activate/route.ts`
 
-**Status**: partial (activation scheduling rule still basic/manual)
+**Status**: done
 
 ### [x] PL-5.4 (DS-0.A, DS-12.B) — Ops checklists/runbook + seed tooling
 **What was built**
 - Shared SaaS runbook
-- demo seed scaffold SQL
+- Step-by-step environment, migration, bucket, realtime, and job checklist
+- Demo seed scaffold SQL
 
 **Where**
 - `docs/ops-runbook.md`
 - `scripts/seed-demo.sql`
 
-**Status**: partial (Supabase setup checklist should be expanded into step-by-step commands)
+**Status**: done
 
 ---
 

@@ -5,6 +5,7 @@ import { getCurrentWorkspace } from '@/lib/workspace/current';
 import { assertStorageWithinLimit } from '@/lib/limits';
 import { upsertUsageCounter } from '@/lib/usage/counters';
 import { logAuditEvent } from '@/lib/audit/events';
+import { enforceRateLimit, requestIp } from '@/lib/security/rate-limit';
 
 const bodySchema = z.object({
   bucket: z.enum(['permit_attachments', 'qualification_evidence']),
@@ -13,6 +14,9 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const rl = enforceRateLimit(`upload-sign:${requestIp(request.headers)}`, 60, 60_000);
+  if (!rl.allowed) return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
+
   const ctx = await getCurrentWorkspace();
   if (!ctx) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 

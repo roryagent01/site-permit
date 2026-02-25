@@ -4,6 +4,7 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { env } from '@/lib/env';
+import { enforceRateLimit } from '@/lib/security/rate-limit';
 
 function resolveBaseUrl(hostHeader: string | null) {
   if (env.APP_BASE_URL) return env.APP_BASE_URL;
@@ -21,6 +22,12 @@ export async function requestOtpAction(formData: FormData) {
 
   const supabase = await createSupabaseServerClient();
   const headerStore = await headers();
+  const ip = (headerStore.get('x-forwarded-for') ?? headerStore.get('x-real-ip') ?? 'unknown').split(',')[0].trim();
+  const rl = enforceRateLimit(`otp:${ip}:${email}`, 5, 15 * 60_000);
+  if (!rl.allowed) {
+    redirect('/auth/login?error=rate_limited');
+  }
+
   const baseUrl = resolveBaseUrl(headerStore.get('host'));
 
   const { error } = await supabase.auth.signInWithOtp({

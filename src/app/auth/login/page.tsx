@@ -5,7 +5,8 @@ const MESSAGES: Record<string, string> = {
   missing_email: 'Enter an email address to continue.',
   otp_send_failed: 'Could not send sign-in email. Please try again.',
   missing_code: 'Sign-in link is incomplete. Request a new one.',
-  callback_failed: 'Sign-in link expired or invalid. Request a new one.'
+  callback_failed: 'Sign-in link expired or invalid. Request a new one.',
+  rate_limited: 'Too many sign-in attempts. Please wait and try again.'
 };
 
 export default async function LoginPage({
