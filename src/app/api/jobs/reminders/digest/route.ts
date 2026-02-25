@@ -45,6 +45,8 @@ export async function POST(request: Request) {
         workspace_id: ws.id,
         delivery_key: deliveryKey,
         recipient,
+        mode,
+        send_status: 'sent',
         payload: {
           workspace: ws.name,
           expiringCount: expiring?.length ?? 0,

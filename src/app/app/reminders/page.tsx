@@ -37,6 +37,46 @@ async function saveReminderSettingsAction(formData: FormData) {
   revalidatePath('/app/reminders');
 }
 
+async function resendDeliveryAction(formData: FormData) {
+  'use server';
+  const ctx = await getCurrentWorkspace();
+  if (!ctx) return;
+
+  const sourceDeliveryId = String(formData.get('delivery_id') ?? '');
+  if (!sourceDeliveryId) return;
+
+  const supabase = await createSupabaseServerClient();
+  const { data: src } = await supabase
+    .from('reminder_deliveries')
+    .select('id,delivery_key,recipient,payload,mode')
+    .eq('workspace_id', ctx.workspaceId)
+    .eq('id', sourceDeliveryId)
+    .maybeSingle();
+
+  if (!src) return;
+
+  await supabase.from('reminder_deliveries').insert({
+    workspace_id: ctx.workspaceId,
+    delivery_key: `${src.delivery_key}:resend:${Date.now()}`,
+    recipient: src.recipient,
+    payload: src.payload,
+    mode: src.mode,
+    resend_of: src.id,
+    send_status: 'sent'
+  });
+
+  await logAuditEvent({
+    workspaceId: ctx.workspaceId,
+    actorUserId: ctx.user.id,
+    action: 'reminder_delivery.resent',
+    objectType: 'reminder_delivery',
+    objectId: src.id,
+    payload: { recipient: src.recipient }
+  });
+
+  revalidatePath('/app/reminders');
+}
+
 export default async function RemindersPage() {
   const ctx = await getCurrentWorkspace();
   const supabase = await createSupabaseServerClient();
@@ -48,7 +88,7 @@ export default async function RemindersPage() {
     ctx
       ? (await supabase
           .from('reminder_deliveries')
-          .select('id,delivery_key,recipient,sent_at')
+          .select('id,delivery_key,recipient,sent_at,mode,send_status,resend_of')
           .eq('workspace_id', ctx.workspaceId)
           .order('sent_at', { ascending: false })
           .limit(20)).data ?? []
@@ -77,7 +117,15 @@ export default async function RemindersPage() {
             {deliveries.map((d) => (
               <li key={d.id} className="rounded border p-2">
                 <div className="font-medium">{d.delivery_key}</div>
-                <div className="text-slate-600">{d.recipient} • {new Date(d.sent_at).toLocaleString()}</div>
+                <div className="text-slate-600">
+                  {d.recipient} • {new Date(d.sent_at).toLocaleString()} • mode={d.mode} • status={d.send_status}
+                </div>
+                <form action={resendDeliveryAction} className="mt-2">
+                  <input type="hidden" name="delivery_id" value={d.id} />
+                  <Button type="submit" variant="secondary" className="px-3 py-1.5 text-xs min-h-0">
+                    Resend
+                  </Button>
+                </form>
               </li>
             ))}
             {deliveries.length === 0 ? <li className="text-slate-500">No deliveries logged yet.</li> : null}
