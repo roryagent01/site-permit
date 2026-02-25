@@ -1,0 +1,23 @@
+export default function HomePage() {
+  return (
+    <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-6 p-6">
+      <h1 className="text-3xl font-semibold text-blue-900">Site Permit</h1>
+      <p className="text-slate-700">Clean industrial Permit-to-Work and Contractor Qualification platform for SMB teams.</p>
+      <div className="rounded-lg border border-blue-100 bg-white p-4">
+        <p className="font-medium text-slate-800">MVP routes scaffolded:</p>
+        <ul className="mt-2 list-disc pl-6 text-sm text-slate-700">
+          <li>/auth/login</li>
+          <li>/app/dashboard</li>
+          <li>/app/permits</li>
+          <li>/app/templates</li>
+          <li>/app/contractors</li>
+          <li>/app/qualifications</li>
+          <li>/app/reminders</li>
+          <li>/app/reports</li>
+          <li>/app/settings</li>
+          <li>/app/admin</li>
+        </ul>
+      </div>
+    </main>
+  );
+}
