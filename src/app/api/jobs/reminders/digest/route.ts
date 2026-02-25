@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { reminderDigestEmailHtml, sendEmail } from '@/lib/notifications/email';
+import { getWorkspaceRoleRecipientEmails } from '@/lib/notifications/workspace-recipients';
 
 export async function POST(request: Request) {
   const cronSecret = process.env.CRON_SECRET;
@@ -40,19 +42,35 @@ export async function POST(request: Request) {
     const recipient = `workspace:${ws.id}:owners-admins`;
     const mode: 'full' | 'summary' = (expiring?.length ?? 0) > emailDailyCap ? 'summary' : 'full';
 
+    const recipients = await getWorkspaceRoleRecipientEmails(ws.id, ['owner', 'admin']);
+    const emailResult = recipients.length
+      ? await sendEmail({
+          to: recipients,
+          subject: `Qualification expiry digest (${ws.name})`,
+          html: reminderDigestEmailHtml({
+            workspaceName: ws.name,
+            expiringCount: expiring?.length ?? 0,
+            mode,
+            appBaseUrl: process.env.APP_BASE_URL
+          })
+        })
+      : { ok: false, error: 'no_recipients' };
+
     const { error } = await admin.from('reminder_deliveries').upsert(
       {
         workspace_id: ws.id,
         delivery_key: deliveryKey,
         recipient,
         mode,
-        send_status: 'sent',
+        send_status: emailResult.ok ? 'sent' : 'failed',
         payload: {
           workspace: ws.name,
           expiringCount: expiring?.length ?? 0,
           windows,
           mode,
-          capped: mode === 'summary'
+          capped: mode === 'summary',
+          emailError: emailResult.ok ? null : emailResult.error,
+          recipientCount: recipients.length
         }
       },
       { onConflict: 'workspace_id,delivery_key,recipient' }

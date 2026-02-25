@@ -11,6 +11,8 @@ import { logAuditEvent } from '@/lib/audit/events';
 import { canTransitionPermit, type PermitStatus } from '@/lib/domain/permit';
 import { evaluateQualificationGate } from '@/lib/domain/qualification-gate';
 import { UploadWidget } from '@/components/files/upload-widget';
+import { getWorkspaceRoleRecipientEmails } from '@/lib/notifications/workspace-recipients';
+import { permitDecisionEmailHtml, permitSubmittedEmailHtml, sendEmail } from '@/lib/notifications/email';
 
 type QualificationGateResult = { blocked: boolean; reason?: string };
 
@@ -47,6 +49,7 @@ async function transitionPermitAction(formData: FormData) {
   'use server';
   const permitId = String(formData.get('permit_id'));
   const nextStatus = String(formData.get('next_status'));
+  const closureNote = String(formData.get('closure_note') ?? '').trim();
   const ctx = await getCurrentWorkspace();
   if (!ctx) return;
   if (nextStatus === 'submitted' && !['issuer', 'admin', 'owner'].includes(ctx.role)) return;
@@ -67,10 +70,21 @@ async function transitionPermitAction(formData: FormData) {
 
   const { data: permitForGate } = await supabase
     .from('permits')
-    .select('template_id,payload')
+    .select('template_id,payload,end_at')
     .eq('id', permitId)
     .eq('workspace_id', ctx.workspaceId)
     .single();
+
+  if (nextStatus === 'closed') {
+    if (!closureNote) return;
+    if (!permitForGate?.end_at) {
+      await supabase
+        .from('permits')
+        .update({ end_at: new Date().toISOString(), payload: { ...(permitForGate?.payload as object), closure_note: closureNote } })
+        .eq('id', permitId)
+        .eq('workspace_id', ctx.workspaceId);
+    }
+  }
 
   if (nextStatus === 'submitted') {
     const contractorId = (permitForGate?.payload as { contractor_id?: string | null } | null)?.contractor_id ?? null;
@@ -88,9 +102,15 @@ async function transitionPermitAction(formData: FormData) {
     }
   }
 
+  const updatePayload: Record<string, unknown> = { status: nextStatus, updated_at: new Date().toISOString() };
+  if (nextStatus === 'closed') {
+    updatePayload.end_at = permitForGate?.end_at ?? new Date().toISOString();
+    updatePayload.payload = { ...(permitForGate?.payload as object), closure_note: closureNote };
+  }
+
   await supabase
     .from('permits')
-    .update({ status: nextStatus, updated_at: new Date().toISOString() })
+    .update(updatePayload)
     .eq('id', permitId)
     .eq('workspace_id', ctx.workspaceId);
 
@@ -111,6 +131,27 @@ async function transitionPermitAction(formData: FormData) {
       decision: 'changes',
       comment: 'Awaiting formal approver decision (v1 placeholder step).'
     });
+
+    const { data: permitInfo } = await supabase
+      .from('permits')
+      .select('title')
+      .eq('workspace_id', ctx.workspaceId)
+      .eq('id', permitId)
+      .single();
+
+    const recipients = await getWorkspaceRoleRecipientEmails(ctx.workspaceId, ['approver', 'admin', 'owner']);
+    if (recipients.length) {
+      await sendEmail({
+        to: recipients,
+        subject: `Permit submitted: ${permitInfo?.title ?? permitId}`,
+        html: permitSubmittedEmailHtml({
+          permitTitle: permitInfo?.title ?? permitId,
+          workspaceName: ctx.workspaceName,
+          permitId,
+          appBaseUrl: process.env.APP_BASE_URL
+        })
+      });
+    }
   }
 
   revalidatePath(`/app/permits/${permitId}`);
@@ -154,6 +195,29 @@ async function approvePermitAction(formData: FormData) {
   });
 
   await supabase.from('permits').update({ status: 'approved' }).eq('id', permitId).eq('workspace_id', ctx.workspaceId);
+
+  const { data: permitInfo } = await supabase
+    .from('permits')
+    .select('title,created_by')
+    .eq('workspace_id', ctx.workspaceId)
+    .eq('id', permitId)
+    .single();
+
+  const recipients = await getWorkspaceRoleRecipientEmails(ctx.workspaceId, ['issuer', 'admin', 'owner']);
+  if (recipients.length) {
+    await sendEmail({
+      to: recipients,
+      subject: `Permit approved: ${permitInfo?.title ?? permitId}`,
+      html: permitDecisionEmailHtml({
+        permitTitle: permitInfo?.title ?? permitId,
+        decision: 'approved',
+        comment,
+        permitId,
+        appBaseUrl: process.env.APP_BASE_URL
+      })
+    });
+  }
+
   await logAuditEvent({
     workspaceId: ctx.workspaceId,
     actorUserId: ctx.user.id,
@@ -220,9 +284,10 @@ export default async function PermitDetailPage({ params }: { params: Promise<{ i
                 <input type="hidden" name="next_status" value="active" />
                 <Button type="submit" variant="secondary">Activate</Button>
               </form>
-              <form action={transitionPermitAction}>
+              <form action={transitionPermitAction} className="flex items-center gap-2">
                 <input type="hidden" name="permit_id" value={permit.id} />
                 <input type="hidden" name="next_status" value="closed" />
+                <input name="closure_note" placeholder="Closure notes" className="rounded border px-2 py-1 text-xs" />
                 <Button type="submit" variant="secondary">Close</Button>
               </form>
               <Link href={`/api/permits/${permit.id}/pdf`} className="rounded-md border px-4 py-2 text-sm">Export PDF</Link>
