@@ -33,6 +33,12 @@ export default async function SettingsPage() {
     );
   }
 
+  const { data: workspace } = await supabase
+    .from('workspaces')
+    .select('billing_email,dedicated_hosting,dedicated_region,support_tier')
+    .eq('id', ctx.workspaceId)
+    .maybeSingle();
+
   const [members, contractors, permitsMonth] = await Promise.all([
     supabase.from('workspace_members').select('*', { count: 'exact', head: true }).eq('workspace_id', ctx.workspaceId),
     supabase.from('contractors').select('*', { count: 'exact', head: true }).eq('workspace_id', ctx.workspaceId),
@@ -51,6 +57,9 @@ export default async function SettingsPage() {
         <Card title="Workspace">
           <p className="text-sm">Name: {ctx.workspaceName}</p>
           <p className="text-sm">Plan: {ctx.workspacePlan}</p>
+          <p className="text-sm">Support: {workspace?.support_tier ?? 'email'}</p>
+          <p className="text-sm">Billing email: {workspace?.billing_email ?? 'not set'}</p>
+          <p className="text-sm">Dedicated hosting: {workspace?.dedicated_hosting ? `yes (${workspace?.dedicated_region ?? 'region pending'})` : 'no'}</p>
         </Card>
         <Card title="Usage">
           <div className="space-y-3">
@@ -58,7 +67,7 @@ export default async function SettingsPage() {
             <Meter label="Contractors" used={contractors.count ?? 0} max={limits.contractors} />
             <Meter label="Permits this month" used={permitsMonth.count ?? 0} max={limits.permitsPerMonth} />
           </div>
-          <p className="mt-4 text-xs text-slate-600">Need more capacity? Upgrade to Growth or Scale.</p>
+          <p className="mt-4 text-xs text-slate-600">Need more capacity? Upgrade via billing endpoint or sales-assisted flow.</p>
         </Card>
       </div>
     </AppShell>
