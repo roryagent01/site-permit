@@ -25,8 +25,8 @@
 - [x] PL-3.4 (DS-13): Test suite baseline + CI gates
 
 ## Phase 4 Beta Hardening
-- PL-4.1 (DS-3.D): Qualification gating block/warn modes
-- PL-4.2 (DS-8.B): Reports dashboard metrics
-- PL-4.3 (DS-11.B): Reminder backpressure and resend controls
-- PL-4.4 (DS-2.C): Granular RBAC
-- PL-4.5 (DS-5.B): Dedicated hosting playbook + SKU
+- [x] PL-4.1 (DS-3.D): Qualification gating block/warn modes
+- [x] PL-4.2 (DS-8.B): Reports dashboard metrics
+- [x] PL-4.3 (DS-11.B): Reminder backpressure and resend controls
+- [x] PL-4.4 (DS-2.C): Granular RBAC
+- [x] PL-4.5 (DS-5.B): Dedicated hosting playbook + SKU

@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentWorkspace } from '@/lib/workspace/current';
 import { logAuditEvent } from '@/lib/audit/events';
+import { UploadWidget } from '@/components/files/upload-widget';
 
 async function createQualificationRecordAction(formData: FormData) {
   'use server';
@@ -44,7 +45,7 @@ export default async function QualificationRecordsPage() {
   const ctx = await getCurrentWorkspace();
   const supabase = await createSupabaseServerClient();
 
-  const [contractors, types, records] = await Promise.all([
+  const [contractors, types, records, evidenceFiles] = await Promise.all([
     ctx
       ? (await supabase.from('contractors').select('id,name').eq('workspace_id', ctx.workspaceId).order('name')).data ?? []
       : [],
@@ -57,8 +58,24 @@ export default async function QualificationRecordsPage() {
           .select('id,issue_date,expiry_date,verification_status,contractors(name),qualification_types(name)')
           .eq('workspace_id', ctx.workspaceId)
           .order('created_at', { ascending: false })).data ?? []
+      : [],
+    ctx
+      ? (await supabase
+          .from('files')
+          .select('id,contractor_qualification_id,path')
+          .eq('workspace_id', ctx.workspaceId)
+          .not('contractor_qualification_id', 'is', null)).data ?? []
       : []
   ]);
+
+  const evidenceByRecord = new Map<string, string[]>();
+  for (const f of evidenceFiles) {
+    const key = f.contractor_qualification_id as string | null;
+    if (!key) continue;
+    const list = evidenceByRecord.get(key) ?? [];
+    list.push(f.path);
+    evidenceByRecord.set(key, list);
+  }
 
   return (
     <AppShell title="Qualification Records">
@@ -88,6 +105,15 @@ export default async function QualificationRecordsPage() {
               <li key={r.id} className="rounded border p-2">
                 <div className="font-medium">{(r.contractors as { name?: string } | null)?.name} • {(r.qualification_types as { name?: string } | null)?.name}</div>
                 <div className="text-slate-600">Expiry: {r.expiry_date || '-'} • {r.verification_status}</div>
+                <div className="mt-2 grid gap-2">
+                  <UploadWidget bucket="qualification_evidence" contractorQualificationId={r.id} />
+                  <ul className="text-xs text-slate-600">
+                    {(evidenceByRecord.get(r.id) ?? []).slice(0, 3).map((p) => (
+                      <li key={p} className="truncate">{p}</li>
+                    ))}
+                    {(evidenceByRecord.get(r.id) ?? []).length === 0 ? <li>No evidence uploaded yet.</li> : null}
+                  </ul>
+                </div>
               </li>
             ))}
             {records.length === 0 ? <li className="text-slate-500">No qualification records yet.</li> : null}

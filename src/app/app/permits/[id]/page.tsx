@@ -9,6 +9,8 @@ import { getCurrentWorkspace } from '@/lib/workspace/current';
 import { PermitLiveStatus } from './permit-live';
 import { logAuditEvent } from '@/lib/audit/events';
 import { canTransitionPermit, type PermitStatus } from '@/lib/domain/permit';
+import { evaluateQualificationGate } from '@/lib/domain/qualification-gate';
+import { UploadWidget } from '@/components/files/upload-widget';
 
 type QualificationGateResult = { blocked: boolean; reason?: string };
 
@@ -30,8 +32,6 @@ async function checkQualificationGate(
   const gate = (tpl?.definition as { qualificationGate?: { mode?: 'block' | 'warn'; requiredQualificationTypeIds?: string[] } })
     ?.qualificationGate;
 
-  if (!gate?.requiredQualificationTypeIds?.length) return { blocked: false };
-
   const { data: quals } = await supabase
     .from('contractor_qualifications')
     .select('qualification_type_id,expiry_date')
@@ -39,14 +39,8 @@ async function checkQualificationGate(
     .eq('contractor_id', contractorId);
 
   const today = new Date().toISOString().slice(0, 10);
-  const missing = gate.requiredQualificationTypeIds.filter((id) => {
-    const found = quals?.find((q) => q.qualification_type_id === id && (!q.expiry_date || q.expiry_date >= today));
-    return !found;
-  });
-
-  if (!missing.length) return { blocked: false };
-  if (gate.mode === 'block') return { blocked: true, reason: `missing qualifications: ${missing.join(', ')}` };
-  return { blocked: false, reason: `warning: missing qualifications ${missing.join(', ')}` };
+  const evalResult = evaluateQualificationGate(gate, quals ?? [], today);
+  return { blocked: evalResult.blocked, reason: evalResult.reason };
 }
 
 async function transitionPermitAction(formData: FormData) {
@@ -186,12 +180,20 @@ export default async function PermitDetailPage({ params }: { params: Promise<{ i
 
   if (!permit) notFound();
 
-  const { data: approvals } = await supabase
-    .from('permit_approvals')
-    .select('id,decision,comment,decided_at,approver_user_id')
-    .eq('workspace_id', ctx.workspaceId)
-    .eq('permit_id', id)
-    .order('decided_at', { ascending: false });
+  const [{ data: approvals }, { data: attachments }] = await Promise.all([
+    supabase
+      .from('permit_approvals')
+      .select('id,decision,comment,decided_at,approver_user_id')
+      .eq('workspace_id', ctx.workspaceId)
+      .eq('permit_id', id)
+      .order('decided_at', { ascending: false }),
+    supabase
+      .from('files')
+      .select('id,path,bucket,created_at')
+      .eq('workspace_id', ctx.workspaceId)
+      .eq('permit_id', id)
+      .order('created_at', { ascending: false })
+  ]);
 
   return (
     <AppShell title="Permit Detail">
@@ -224,6 +226,19 @@ export default async function PermitDetailPage({ params }: { params: Promise<{ i
                 <Button type="submit" variant="secondary">Close</Button>
               </form>
               <Link href={`/api/permits/${permit.id}/pdf`} className="rounded-md border px-4 py-2 text-sm">Export PDF</Link>
+            </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <UploadWidget bucket="permit_attachments" permitId={permit.id} />
+              <div className="rounded-md border p-3">
+                <p className="mb-2 text-xs text-slate-600">Current attachments</p>
+                <ul className="space-y-1 text-xs text-slate-700">
+                  {attachments?.map((f) => (
+                    <li key={f.id} className="truncate">{f.bucket}: {f.path}</li>
+                  ))}
+                  {!attachments?.length ? <li className="text-slate-500">No attachments yet.</li> : null}
+                </ul>
+              </div>
             </div>
           </Card>
         </div>
