@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentWorkspace } from '@/lib/workspace/current';
+import { logAuditEvent } from '@/lib/audit/events';
 
 async function saveReminderSettingsAction(formData: FormData) {
   'use server';
@@ -16,11 +17,21 @@ async function saveReminderSettingsAction(formData: FormData) {
     .filter((n) => Number.isFinite(n) && n > 0);
 
   const supabase = await createSupabaseServerClient();
+  const digestEnabled = formData.get('digest_enabled') === 'on';
+
   await supabase.from('reminder_settings').upsert({
     workspace_id: ctx.workspaceId,
     windows_days: windows,
-    digest_enabled: formData.get('digest_enabled') === 'on',
+    digest_enabled: digestEnabled,
     updated_at: new Date().toISOString()
+  });
+
+  await logAuditEvent({
+    workspaceId: ctx.workspaceId,
+    actorUserId: ctx.user.id,
+    action: 'reminder_settings.updated',
+    objectType: 'reminder_settings',
+    payload: { windows, digestEnabled }
   });
 
   revalidatePath('/app/reminders');

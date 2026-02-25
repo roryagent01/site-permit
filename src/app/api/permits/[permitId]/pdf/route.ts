@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { PDFDocument, StandardFonts } from 'pdf-lib';
 import { getCurrentWorkspace } from '@/lib/workspace/current';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { logAuditEvent } from '@/lib/audit/events';
 
 export async function GET(_: Request, { params }: { params: Promise<{ permitId: string }> }) {
   const { permitId } = await params;
@@ -42,6 +43,15 @@ export async function GET(_: Request, { params }: { params: Promise<{ permitId: 
   draw(`Location: ${(permit.payload as { location?: string })?.location ?? '-'}`);
   draw('Approvals:', 12);
   (approvals ?? []).forEach((a) => draw(`- ${a.decision} | ${a.comment ?? ''} | ${a.decided_at ?? ''}`));
+
+  await logAuditEvent({
+    workspaceId: ctx.workspaceId,
+    actorUserId: ctx.user.id,
+    action: 'permit.export_pdf',
+    objectType: 'permit',
+    objectId: permit.id,
+    payload: { status: permit.status }
+  });
 
   const bytes = await pdfDoc.save();
   return new NextResponse(Buffer.from(bytes), {

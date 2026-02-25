@@ -2,10 +2,14 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { getCurrentWorkspace } from '@/lib/workspace/current';
+import { assertStorageWithinLimit } from '@/lib/limits';
+import { upsertUsageCounter } from '@/lib/usage/counters';
+import { logAuditEvent } from '@/lib/audit/events';
 
 const bodySchema = z.object({
   bucket: z.enum(['permit_attachments', 'qualification_evidence']),
-  fileName: z.string().min(1)
+  fileName: z.string().min(1),
+  sizeBytes: z.number().int().nonnegative().default(0)
 });
 
 export async function POST(request: Request) {
@@ -17,6 +21,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'invalid_payload' }, { status: 400 });
   }
 
+  try {
+    await assertStorageWithinLimit(ctx.workspaceId, ctx.workspacePlan, parsed.data.sizeBytes);
+  } catch {
+    return NextResponse.json({ error: 'storage_limit_reached' }, { status: 403 });
+  }
+
   const path = `${ctx.workspaceId}/${Date.now()}-${parsed.data.fileName}`;
   const admin = createSupabaseAdminClient();
   const { data, error } = await admin.storage.from(parsed.data.bucket).createSignedUploadUrl(path);
@@ -24,6 +34,15 @@ export async function POST(request: Request) {
   if (error) {
     return NextResponse.json({ error: 'sign_failed' }, { status: 500 });
   }
+
+  await upsertUsageCounter(ctx.workspaceId, { storage_used_bytes: parsed.data.sizeBytes });
+  await logAuditEvent({
+    workspaceId: ctx.workspaceId,
+    actorUserId: ctx.user.id,
+    action: 'file.upload_sign_requested',
+    objectType: 'file',
+    payload: { bucket: parsed.data.bucket, path, sizeBytes: parsed.data.sizeBytes }
+  });
 
   return NextResponse.json({
     token: data.token,

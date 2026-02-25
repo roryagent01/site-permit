@@ -5,20 +5,28 @@ import { Card } from '@/components/ui/card';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentWorkspace } from '@/lib/workspace/current';
 import { assertPermitsWithinLimit } from '@/lib/limits';
+import { logAuditEvent } from '@/lib/audit/events';
+import { upsertUsageCounter } from '@/lib/usage/counters';
 
 async function createPermitAction(formData: FormData) {
   'use server';
   const ctx = await getCurrentWorkspace();
   if (!ctx) return;
   const supabase = await createSupabaseServerClient();
-  await assertPermitsWithinLimit(ctx.workspaceId, ctx.workspacePlan);
 
+  try {
+    await assertPermitsWithinLimit(ctx.workspaceId, ctx.workspacePlan);
+  } catch {
+    redirect('/app/permits/new?error=permit_limit_reached');
+  }
+
+  const title = String(formData.get('title') ?? '');
   const { data } = await supabase
     .from('permits')
     .insert({
       workspace_id: ctx.workspaceId,
       template_id: String(formData.get('template_id')) || null,
-      title: String(formData.get('title') ?? ''),
+      title,
       start_at: String(formData.get('start_at') ?? '') || null,
       end_at: String(formData.get('end_at') ?? '') || null,
       status: 'draft',
@@ -28,13 +36,28 @@ async function createPermitAction(formData: FormData) {
     .select('id')
     .single();
 
+  await upsertUsageCounter(ctx.workspaceId, { permits_created: 1 });
+  await logAuditEvent({
+    workspaceId: ctx.workspaceId,
+    actorUserId: ctx.user.id,
+    action: 'permit.created',
+    objectType: 'permit',
+    objectId: data?.id,
+    payload: { title }
+  });
+
   if (data?.id) redirect(`/app/permits/${data.id}`);
   redirect('/app/permits');
 }
 
-export default async function NewPermitPage() {
+export default async function NewPermitPage({
+  searchParams
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const ctx = await getCurrentWorkspace();
   const supabase = await createSupabaseServerClient();
+  const { error } = await searchParams;
 
   const templates = ctx
     ? (await supabase
@@ -46,6 +69,11 @@ export default async function NewPermitPage() {
 
   return (
     <AppShell title="Create Permit">
+      {error === 'permit_limit_reached' ? (
+        <p className="mb-3 rounded-md bg-amber-50 p-3 text-sm text-amber-700">
+          Monthly permit limit reached for your plan. Upgrade to continue creating permits.
+        </p>
+      ) : null}
       <Card>
         <form action={createPermitAction} className="grid gap-3 md:grid-cols-2">
           <input name="title" required placeholder="Boiler room hot work" className="rounded-md border px-3 py-2" />

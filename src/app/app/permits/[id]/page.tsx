@@ -7,6 +7,8 @@ import { Card } from '@/components/ui/card';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentWorkspace } from '@/lib/workspace/current';
 import { PermitLiveStatus } from './permit-live';
+import { logAuditEvent } from '@/lib/audit/events';
+import { canTransitionPermit, type PermitStatus } from '@/lib/domain/permit';
 
 async function transitionPermitAction(formData: FormData) {
   'use server';
@@ -16,18 +18,29 @@ async function transitionPermitAction(formData: FormData) {
   if (!ctx) return;
   const supabase = await createSupabaseServerClient();
 
+  const { data: existing } = await supabase
+    .from('permits')
+    .select('status')
+    .eq('id', permitId)
+    .eq('workspace_id', ctx.workspaceId)
+    .single();
+
+  if (!existing?.status || !canTransitionPermit(existing.status as PermitStatus, nextStatus as PermitStatus)) {
+    return;
+  }
+
   await supabase
     .from('permits')
     .update({ status: nextStatus, updated_at: new Date().toISOString() })
     .eq('id', permitId)
     .eq('workspace_id', ctx.workspaceId);
 
-  await supabase.from('audit_events').insert({
-    workspace_id: ctx.workspaceId,
-    actor_user_id: ctx.user.id,
+  await logAuditEvent({
+    workspaceId: ctx.workspaceId,
+    actorUserId: ctx.user.id,
     action: `permit.${nextStatus}`,
-    object_type: 'permit',
-    object_id: permitId,
+    objectType: 'permit',
+    objectId: permitId,
     payload: { status: nextStatus }
   });
 
@@ -61,6 +74,14 @@ async function approvePermitAction(formData: FormData) {
   });
 
   await supabase.from('permits').update({ status: 'approved' }).eq('id', permitId).eq('workspace_id', ctx.workspaceId);
+  await logAuditEvent({
+    workspaceId: ctx.workspaceId,
+    actorUserId: ctx.user.id,
+    action: 'permit.approved',
+    objectType: 'permit',
+    objectId: permitId,
+    payload: { comment }
+  });
   revalidatePath(`/app/permits/${permitId}`);
 }
 

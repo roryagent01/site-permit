@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentWorkspace } from '@/lib/workspace/current';
+import { logAuditEvent } from '@/lib/audit/events';
 
 async function createTemplateAction(formData: FormData) {
   'use server';
@@ -11,15 +12,31 @@ async function createTemplateAction(formData: FormData) {
   if (!ctx) return;
   const supabase = await createSupabaseServerClient();
 
-  await supabase.from('permit_templates').insert({
-    workspace_id: ctx.workspaceId,
-    name: String(formData.get('name') ?? ''),
-    category: String(formData.get('category') ?? ''),
-    definition: {
-      requiredFields: ['location', 'start_at', 'end_at'],
-      requiredApprovals: [{ order: 1, role: 'approver' }]
-    },
-    created_by: ctx.user.id
+  const name = String(formData.get('name') ?? '');
+  const category = String(formData.get('category') ?? '');
+
+  const { data: template } = await supabase
+    .from('permit_templates')
+    .insert({
+      workspace_id: ctx.workspaceId,
+      name,
+      category,
+      definition: {
+        requiredFields: ['location', 'start_at', 'end_at'],
+        requiredApprovals: [{ order: 1, role: 'approver' }]
+      },
+      created_by: ctx.user.id
+    })
+    .select('id')
+    .single();
+
+  await logAuditEvent({
+    workspaceId: ctx.workspaceId,
+    actorUserId: ctx.user.id,
+    action: 'template.created',
+    objectType: 'permit_template',
+    objectId: template?.id,
+    payload: { name, category }
   });
 
   revalidatePath('/app/templates');

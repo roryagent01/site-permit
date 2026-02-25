@@ -19,10 +19,10 @@
 - [x] PL-2.4 (DS-4.D, DS-11.A): Reminder settings + digest + logs
 
 ## Phase 3 Packaging + Limits + Audit
-- PL-3.1 (DS-5.C): Plan limits enforcement
-- PL-3.2 (DS-5.A): Usage meter UI + upgrade prompts
-- PL-3.3 (DS-9.A): Audit events helper and action coverage
-- PL-3.4 (DS-13): Test suite baseline + CI gates
+- [x] PL-3.1 (DS-5.C): Plan limits enforcement
+- [x] PL-3.2 (DS-5.A): Usage meter UI + upgrade prompts
+- [x] PL-3.3 (DS-9.A): Audit events helper and action coverage
+- [x] PL-3.4 (DS-13): Test suite baseline + CI gates
 
 ## Phase 4 Beta Hardening
 - PL-4.1 (DS-3.D): Qualification gating block/warn modes

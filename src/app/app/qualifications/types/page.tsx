@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentWorkspace } from '@/lib/workspace/current';
+import { logAuditEvent } from '@/lib/audit/events';
 
 async function createQualificationTypeAction(formData: FormData) {
   'use server';
@@ -11,11 +12,25 @@ async function createQualificationTypeAction(formData: FormData) {
   if (!ctx) return;
   const supabase = await createSupabaseServerClient();
 
-  await supabase.from('qualification_types').insert({
-    workspace_id: ctx.workspaceId,
-    name: String(formData.get('name') ?? ''),
-    validity_months: Number(formData.get('validity_months') || 12),
-    evidence_required: formData.get('evidence_required') === 'on'
+  const name = String(formData.get('name') ?? '');
+  const { data: type } = await supabase
+    .from('qualification_types')
+    .insert({
+      workspace_id: ctx.workspaceId,
+      name,
+      validity_months: Number(formData.get('validity_months') || 12),
+      evidence_required: formData.get('evidence_required') === 'on'
+    })
+    .select('id')
+    .single();
+
+  await logAuditEvent({
+    workspaceId: ctx.workspaceId,
+    actorUserId: ctx.user.id,
+    action: 'qualification_type.created',
+    objectType: 'qualification_type',
+    objectId: type?.id,
+    payload: { name }
   });
 
   revalidatePath('/app/qualifications/types');

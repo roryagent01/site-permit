@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentWorkspace } from '@/lib/workspace/current';
+import { logAuditEvent } from '@/lib/audit/events';
 
 async function createQualificationRecordAction(formData: FormData) {
   'use server';
@@ -11,13 +12,28 @@ async function createQualificationRecordAction(formData: FormData) {
   if (!ctx) return;
   const supabase = await createSupabaseServerClient();
 
-  await supabase.from('contractor_qualifications').insert({
-    workspace_id: ctx.workspaceId,
-    contractor_id: String(formData.get('contractor_id')),
-    qualification_type_id: String(formData.get('qualification_type_id')),
-    issue_date: String(formData.get('issue_date') ?? '') || null,
-    expiry_date: String(formData.get('expiry_date') ?? '') || null,
-    verification_status: 'unverified'
+  const contractorId = String(formData.get('contractor_id'));
+  const qualificationTypeId = String(formData.get('qualification_type_id'));
+  const { data: rec } = await supabase
+    .from('contractor_qualifications')
+    .insert({
+      workspace_id: ctx.workspaceId,
+      contractor_id: contractorId,
+      qualification_type_id: qualificationTypeId,
+      issue_date: String(formData.get('issue_date') ?? '') || null,
+      expiry_date: String(formData.get('expiry_date') ?? '') || null,
+      verification_status: 'unverified'
+    })
+    .select('id')
+    .single();
+
+  await logAuditEvent({
+    workspaceId: ctx.workspaceId,
+    actorUserId: ctx.user.id,
+    action: 'contractor_qualification.created',
+    objectType: 'contractor_qualification',
+    objectId: rec?.id,
+    payload: { contractorId, qualificationTypeId }
   });
 
   revalidatePath('/app/qualifications/records');
