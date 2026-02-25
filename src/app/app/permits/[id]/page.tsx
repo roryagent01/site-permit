@@ -87,11 +87,14 @@ async function transitionPermitAction(formData: FormData) {
   const permitId = String(formData.get('permit_id'));
   const nextStatus = String(formData.get('next_status'));
   const closureNote = String(formData.get('closure_note') ?? '').trim();
+  const reason = String(formData.get('reason') ?? '').trim();
   const ctx = await getCurrentWorkspace();
   if (!ctx) return;
   if (nextStatus === 'submitted' && !['issuer', 'admin', 'owner'].includes(ctx.role)) return;
   if (nextStatus === 'closed' && !['issuer', 'admin', 'owner'].includes(ctx.role)) return;
   if (nextStatus === 'active' && !['approver', 'admin', 'owner'].includes(ctx.role)) return;
+  if (nextStatus === 'cancelled' && !['issuer', 'admin', 'owner'].includes(ctx.role)) return;
+  if (nextStatus === 'needs_changes' && !['approver', 'admin', 'owner'].includes(ctx.role)) return;
   const supabase = await createSupabaseServerClient();
 
   const { data: existing } = await supabase
@@ -123,6 +126,10 @@ async function transitionPermitAction(formData: FormData) {
     }
   }
 
+  if (nextStatus === 'cancelled' || nextStatus === 'needs_changes') {
+    if (!reason) return;
+  }
+
   if (nextStatus === 'submitted') {
     const contractorId = (permitForGate?.payload as { contractor_id?: string | null } | null)?.contractor_id ?? null;
     const gate = await checkQualificationGate(ctx.workspaceId, permitForGate?.template_id ?? null, contractorId, supabase);
@@ -142,7 +149,18 @@ async function transitionPermitAction(formData: FormData) {
   const updatePayload: Record<string, unknown> = { status: nextStatus, updated_at: new Date().toISOString() };
   if (nextStatus === 'closed') {
     updatePayload.end_at = permitForGate?.end_at ?? new Date().toISOString();
+    updatePayload.closed_at = new Date().toISOString();
     updatePayload.payload = { ...(permitForGate?.payload as object), closure_note: closureNote };
+  }
+  if (nextStatus === 'submitted') updatePayload.submitted_at = new Date().toISOString();
+  if (nextStatus === 'cancelled') {
+    updatePayload.cancelled_at = new Date().toISOString();
+    updatePayload.rejection_reason = reason;
+    updatePayload.payload = { ...(permitForGate?.payload as object), cancellation_reason: reason };
+  }
+  if (nextStatus === 'needs_changes') {
+    updatePayload.needs_changes_reason = reason;
+    updatePayload.payload = { ...(permitForGate?.payload as object), needs_changes_reason: reason };
   }
 
   await supabase
@@ -285,6 +303,85 @@ async function approvePermitAction(formData: FormData) {
     objectId: permitId,
     payload: { comment }
   });
+
+  if (finalApproved) {
+    await supabase
+      .from('permits')
+      .update({ approved_at: new Date().toISOString() })
+      .eq('id', permitId)
+      .eq('workspace_id', ctx.workspaceId);
+  }
+
+  revalidatePath(`/app/permits/${permitId}`);
+}
+
+async function decisionPermitAction(formData: FormData) {
+  'use server';
+  const permitId = String(formData.get('permit_id'));
+  const decision = String(formData.get('decision')); // rejected | changes
+  const comment = String(formData.get('comment') ?? '').trim();
+  const ctx = await getCurrentWorkspace();
+  if (!ctx) return;
+  if (!['approver', 'admin', 'owner'].includes(ctx.role)) return;
+  if (!['rejected', 'changes'].includes(decision)) return;
+  if (!comment) return;
+
+  const supabase = await createSupabaseServerClient();
+  const { data: permit } = await supabase
+    .from('permits')
+    .select('title,status')
+    .eq('workspace_id', ctx.workspaceId)
+    .eq('id', permitId)
+    .single();
+
+  if (!permit || permit.status !== 'submitted') return;
+
+  await supabase.from('permit_approvals').insert({
+    workspace_id: ctx.workspaceId,
+    permit_id: permitId,
+    approver_user_id: ctx.user.id,
+    decision,
+    comment
+  });
+
+  if (decision === 'rejected') {
+    await supabase
+      .from('permits')
+      .update({ status: 'cancelled', cancelled_at: new Date().toISOString(), rejection_reason: comment })
+      .eq('workspace_id', ctx.workspaceId)
+      .eq('id', permitId);
+  } else {
+    await supabase
+      .from('permits')
+      .update({ status: 'needs_changes', needs_changes_reason: comment })
+      .eq('workspace_id', ctx.workspaceId)
+      .eq('id', permitId);
+  }
+
+  const recipients = await getWorkspaceRoleRecipientEmails(ctx.workspaceId, ['issuer', 'admin', 'owner']);
+  if (recipients.length) {
+    await sendEmail({
+      to: recipients,
+      subject: `Permit ${decision === 'rejected' ? 'rejected' : 'needs changes'}: ${permit.title}`,
+      html: permitDecisionEmailHtml({
+        permitTitle: permit.title,
+        decision,
+        comment,
+        permitId,
+        appBaseUrl: process.env.APP_BASE_URL
+      })
+    });
+  }
+
+  await logAuditEvent({
+    workspaceId: ctx.workspaceId,
+    actorUserId: ctx.user.id,
+    action: decision === 'rejected' ? 'permit.rejected' : 'permit.needs_changes',
+    objectType: 'permit',
+    objectId: permitId,
+    payload: { comment }
+  });
+
   revalidatePath(`/app/permits/${permitId}`);
 }
 
@@ -343,6 +440,18 @@ export default async function PermitDetailPage({ params }: { params: Promise<{ i
                 <input type="hidden" name="permit_id" value={permit.id} />
                 <input type="hidden" name="comment" value="Approved by approver" />
                 <Button type="submit">Approve</Button>
+              </form>
+              <form action={decisionPermitAction} className="flex items-center gap-2">
+                <input type="hidden" name="permit_id" value={permit.id} />
+                <input type="hidden" name="decision" value="changes" />
+                <input name="comment" placeholder="Needs changes reason" className="rounded border px-2 py-1 text-xs" />
+                <Button type="submit" variant="secondary">Needs changes</Button>
+              </form>
+              <form action={decisionPermitAction} className="flex items-center gap-2">
+                <input type="hidden" name="permit_id" value={permit.id} />
+                <input type="hidden" name="decision" value="rejected" />
+                <input name="comment" placeholder="Reject reason" className="rounded border px-2 py-1 text-xs" />
+                <Button type="submit" variant="danger">Reject</Button>
               </form>
               <form action={transitionPermitAction}>
                 <input type="hidden" name="permit_id" value={permit.id} />
