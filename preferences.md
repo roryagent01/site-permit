@@ -32,5 +32,17 @@ For each completed mapped item, include:
 - If implementation is partial, mark it `partial` and state what remains.
 - Keep spec and plan synchronized after each meaningful change.
 
+## Stack Preference (default)
+Use this stack by default unless there is a strong technical reason to change:
+- **Frontend/App:** Next.js (latest stable), App Router
+- **UI:** shadcn/ui + Tailwind CSS
+- **Email:** Resend
+- **Auth/Data/Storage/Realtime:** Supabase (OTP auth)
+- **Hosting:** Vercel
+
+## Flexibility Rule
+- Keep the preferred stack as baseline.
+- If project constraints suggest a better option, still propose it clearly with trade-offs (cost, complexity, speed, reliability, lock-in), then ask for approval before switching.
+
 ## Goal
 Maintain full end-to-end traceability from design intent (`DS-*`) to implementation action (`PL-*`) to objective evidence in code and docs.
