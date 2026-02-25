@@ -21,6 +21,10 @@ async function createTemplateAction(formData: FormData) {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
+  const approvalRoles = String(formData.get('approval_roles') || 'approver')
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => ['owner', 'admin', 'approver', 'issuer', 'viewer'].includes(s));
 
   const { data: template } = await supabase
     .from('permit_templates')
@@ -41,13 +45,24 @@ async function createTemplateAction(formData: FormData) {
     .select('id')
     .single();
 
+  if (template?.id) {
+    const steps = (approvalRoles.length ? approvalRoles : ['approver']).map((role, index) => ({
+      workspace_id: ctx.workspaceId,
+      template_id: template.id,
+      step_order: index + 1,
+      role,
+      required: true
+    }));
+    await supabase.from('permit_template_steps').insert(steps);
+  }
+
   await logAuditEvent({
     workspaceId: ctx.workspaceId,
     actorUserId: ctx.user.id,
     action: 'template.created',
     objectType: 'permit_template',
     objectId: template?.id,
-    payload: { name, category, gatingMode, requiredQualificationTypeIds }
+    payload: { name, category, gatingMode, requiredQualificationTypeIds, approvalRoles }
   });
 
   revalidatePath('/app/templates');
@@ -79,6 +94,12 @@ export default async function TemplatesPage() {
             <input
               name="required_qualification_type_ids"
               placeholder="Required qualification type IDs (comma-separated)"
+              className="w-full rounded-md border px-3 py-2"
+            />
+            <input
+              name="approval_roles"
+              defaultValue="approver"
+              placeholder="Approval roles sequence (comma-separated, e.g. approver,admin)"
               className="w-full rounded-md border px-3 py-2"
             />
             <Button type="submit">Create template</Button>

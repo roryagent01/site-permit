@@ -16,6 +16,43 @@ import { permitDecisionEmailHtml, permitSubmittedEmailHtml, sendEmail } from '@/
 
 type QualificationGateResult = { blocked: boolean; reason?: string };
 
+type ApprovalStep = { step_order: number; role: string; required: boolean };
+
+async function getNextRequiredApprovalRole(
+  workspaceId: string,
+  permitId: string,
+  templateId: string | null,
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>
+): Promise<{ nextRole: string | null; totalSteps: number; approvedCount: number }> {
+  if (!templateId) return { nextRole: 'approver', totalSteps: 1, approvedCount: 0 };
+
+  const [{ data: steps }, { data: approvals }] = await Promise.all([
+    supabase
+      .from('permit_template_steps')
+      .select('step_order,role,required')
+      .eq('workspace_id', workspaceId)
+      .eq('template_id', templateId)
+      .order('step_order', { ascending: true }),
+    supabase
+      .from('permit_approvals')
+      .select('id,decision')
+      .eq('workspace_id', workspaceId)
+      .eq('permit_id', permitId)
+      .eq('decision', 'approved')
+  ]);
+
+  const orderedSteps = (steps as ApprovalStep[] | null) ?? [];
+  const totalSteps = orderedSteps.length || 1;
+  const approvedCount = approvals?.length ?? 0;
+
+  if (!orderedSteps.length) {
+    return { nextRole: approvedCount > 0 ? null : 'approver', totalSteps, approvedCount };
+  }
+
+  const next = orderedSteps[approvedCount];
+  return { nextRole: next?.role ?? null, totalSteps, approvedCount };
+}
+
 async function checkQualificationGate(
   workspaceId: string,
   templateId: string | null,
@@ -124,22 +161,16 @@ async function transitionPermitAction(formData: FormData) {
   });
 
   if (nextStatus === 'submitted') {
-    await supabase.from('permit_approvals').insert({
-      workspace_id: ctx.workspaceId,
-      permit_id: permitId,
-      approver_user_id: ctx.user.id,
-      decision: 'changes',
-      comment: 'Awaiting formal approver decision (v1 placeholder step).'
-    });
-
     const { data: permitInfo } = await supabase
       .from('permits')
-      .select('title')
+      .select('title,template_id')
       .eq('workspace_id', ctx.workspaceId)
       .eq('id', permitId)
       .single();
 
-    const recipients = await getWorkspaceRoleRecipientEmails(ctx.workspaceId, ['approver', 'admin', 'owner']);
+    const nextStep = await getNextRequiredApprovalRole(ctx.workspaceId, permitId, permitInfo?.template_id ?? null, supabase);
+    const role = (nextStep.nextRole as 'owner' | 'admin' | 'approver' | 'issuer' | 'viewer' | null) ?? 'approver';
+    const recipients = await getWorkspaceRoleRecipientEmails(ctx.workspaceId, [role, 'admin', 'owner']);
     if (recipients.length) {
       await sendEmail({
         to: recipients,
@@ -168,10 +199,25 @@ async function approvePermitAction(formData: FormData) {
 
   const { data: permitForGate } = await supabase
     .from('permits')
-    .select('template_id,payload')
+    .select('template_id,payload,title,status')
     .eq('id', permitId)
     .eq('workspace_id', ctx.workspaceId)
     .single();
+  if (permitForGate?.status !== 'submitted') return;
+
+  const nextStep = await getNextRequiredApprovalRole(ctx.workspaceId, permitId, permitForGate?.template_id ?? null, supabase);
+  if (nextStep.nextRole && ![nextStep.nextRole, 'admin', 'owner'].includes(ctx.role)) {
+    await logAuditEvent({
+      workspaceId: ctx.workspaceId,
+      actorUserId: ctx.user.id,
+      action: 'permit.approve_blocked_wrong_role',
+      objectType: 'permit',
+      objectId: permitId,
+      payload: { requiredRole: nextStep.nextRole, actorRole: ctx.role }
+    });
+    return;
+  }
+
   const contractorId = (permitForGate?.payload as { contractor_id?: string | null } | null)?.contractor_id ?? null;
   const gate = await checkQualificationGate(ctx.workspaceId, permitForGate?.template_id ?? null, contractorId, supabase);
   if (gate.blocked) {
@@ -194,28 +240,41 @@ async function approvePermitAction(formData: FormData) {
     comment
   });
 
-  await supabase.from('permits').update({ status: 'approved' }).eq('id', permitId).eq('workspace_id', ctx.workspaceId);
+  const postStep = await getNextRequiredApprovalRole(ctx.workspaceId, permitId, permitForGate?.template_id ?? null, supabase);
+  const finalApproved = postStep.nextRole === null || postStep.approvedCount >= postStep.totalSteps;
 
-  const { data: permitInfo } = await supabase
-    .from('permits')
-    .select('title,created_by')
-    .eq('workspace_id', ctx.workspaceId)
-    .eq('id', permitId)
-    .single();
+  if (finalApproved) {
+    await supabase.from('permits').update({ status: 'approved' }).eq('id', permitId).eq('workspace_id', ctx.workspaceId);
 
-  const recipients = await getWorkspaceRoleRecipientEmails(ctx.workspaceId, ['issuer', 'admin', 'owner']);
-  if (recipients.length) {
-    await sendEmail({
-      to: recipients,
-      subject: `Permit approved: ${permitInfo?.title ?? permitId}`,
-      html: permitDecisionEmailHtml({
-        permitTitle: permitInfo?.title ?? permitId,
-        decision: 'approved',
-        comment,
-        permitId,
-        appBaseUrl: process.env.APP_BASE_URL
-      })
-    });
+    const recipients = await getWorkspaceRoleRecipientEmails(ctx.workspaceId, ['issuer', 'admin', 'owner']);
+    if (recipients.length) {
+      await sendEmail({
+        to: recipients,
+        subject: `Permit approved: ${permitForGate?.title ?? permitId}`,
+        html: permitDecisionEmailHtml({
+          permitTitle: permitForGate?.title ?? permitId,
+          decision: 'approved',
+          comment,
+          permitId,
+          appBaseUrl: process.env.APP_BASE_URL
+        })
+      });
+    }
+  } else {
+    const nextRole = (postStep.nextRole as 'owner' | 'admin' | 'approver' | 'issuer' | 'viewer');
+    const recipients = await getWorkspaceRoleRecipientEmails(ctx.workspaceId, [nextRole, 'admin', 'owner']);
+    if (recipients.length) {
+      await sendEmail({
+        to: recipients,
+        subject: `Permit awaiting next approval step: ${permitForGate?.title ?? permitId}`,
+        html: permitSubmittedEmailHtml({
+          permitTitle: permitForGate?.title ?? permitId,
+          workspaceName: ctx.workspaceName,
+          permitId,
+          appBaseUrl: process.env.APP_BASE_URL
+        })
+      });
+    }
   }
 
   await logAuditEvent({
@@ -259,6 +318,8 @@ export default async function PermitDetailPage({ params }: { params: Promise<{ i
       .order('created_at', { ascending: false })
   ]);
 
+  const stepState = await getNextRequiredApprovalRole(ctx.workspaceId, id, permit.template_id, supabase);
+
   return (
     <AppShell title="Permit Detail">
       <div className="grid gap-4 md:grid-cols-3">
@@ -266,6 +327,10 @@ export default async function PermitDetailPage({ params }: { params: Promise<{ i
           <Card title="Permit">
             <h3 className="text-lg font-semibold">{permit.title}</h3>
             <p className="text-sm text-slate-600">Status: {permit.status}</p>
+            <p className="text-sm text-slate-600">
+              Approval progress: {Math.min(stepState.approvedCount, stepState.totalSteps)}/{stepState.totalSteps}
+              {stepState.nextRole ? ` • Waiting on: ${stepState.nextRole}` : ' • Complete'}
+            </p>
             <PermitLiveStatus permitId={permit.id} initialStatus={permit.status} />
             <p className="mt-2 text-sm text-slate-700">Location: {(permit.payload as { location?: string })?.location ?? '-'}</p>
             <div className="mt-4 flex flex-wrap gap-2">
