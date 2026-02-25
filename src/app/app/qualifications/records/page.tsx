@@ -10,6 +10,7 @@ async function createQualificationRecordAction(formData: FormData) {
   'use server';
   const ctx = await getCurrentWorkspace();
   if (!ctx) return;
+  if (!['admin', 'owner'].includes(ctx.role)) return;
   const supabase = await createSupabaseServerClient();
 
   const contractorId = String(formData.get('contractor_id'));

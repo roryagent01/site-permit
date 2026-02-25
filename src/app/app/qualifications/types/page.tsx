@@ -10,6 +10,7 @@ async function createQualificationTypeAction(formData: FormData) {
   'use server';
   const ctx = await getCurrentWorkspace();
   if (!ctx) return;
+  if (!['admin', 'owner'].includes(ctx.role)) return;
   const supabase = await createSupabaseServerClient();
 
   const name = String(formData.get('name') ?? '');

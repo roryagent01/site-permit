@@ -11,9 +11,10 @@ export async function POST(request: Request) {
   const admin = createSupabaseAdminClient();
   const today = new Date();
   const dateKey = today.toISOString().slice(0, 10);
+  const emailDailyCap = Number(process.env.EMAIL_DAILY_CAP ?? 200);
 
   const { data: workspaces } = await admin.from('workspaces').select('id,name');
-  const results: Array<{ workspaceId: string; expiringCount: number; logged: boolean }> = [];
+  const results: Array<{ workspaceId: string; expiringCount: number; logged: boolean; mode: 'full' | 'summary' }> = [];
 
   for (const ws of workspaces ?? []) {
     const { data: settings } = await admin
@@ -37,19 +38,25 @@ export async function POST(request: Request) {
 
     const deliveryKey = `digest:${ws.id}:${dateKey}`;
     const recipient = `workspace:${ws.id}:owners-admins`;
+    const mode: 'full' | 'summary' = (expiring?.length ?? 0) > emailDailyCap ? 'summary' : 'full';
 
-    const { error } = await admin.from('reminder_deliveries').insert({
-      workspace_id: ws.id,
-      delivery_key: deliveryKey,
-      recipient,
-      payload: {
-        workspace: ws.name,
-        expiringCount: expiring?.length ?? 0,
-        windows
-      }
-    });
+    const { error } = await admin.from('reminder_deliveries').upsert(
+      {
+        workspace_id: ws.id,
+        delivery_key: deliveryKey,
+        recipient,
+        payload: {
+          workspace: ws.name,
+          expiringCount: expiring?.length ?? 0,
+          windows,
+          mode,
+          capped: mode === 'summary'
+        }
+      },
+      { onConflict: 'workspace_id,delivery_key,recipient' }
+    );
 
-    results.push({ workspaceId: ws.id, expiringCount: expiring?.length ?? 0, logged: !error });
+    results.push({ workspaceId: ws.id, expiringCount: expiring?.length ?? 0, logged: !error, mode });
   }
 
   return NextResponse.json({ ok: true, results });

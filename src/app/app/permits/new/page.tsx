@@ -12,6 +12,7 @@ async function createPermitAction(formData: FormData) {
   'use server';
   const ctx = await getCurrentWorkspace();
   if (!ctx) return;
+  if (!['issuer', 'admin', 'owner'].includes(ctx.role)) return;
   const supabase = await createSupabaseServerClient();
 
   try {
@@ -30,7 +31,10 @@ async function createPermitAction(formData: FormData) {
       start_at: String(formData.get('start_at') ?? '') || null,
       end_at: String(formData.get('end_at') ?? '') || null,
       status: 'draft',
-      payload: { location: String(formData.get('location') ?? '') },
+      payload: {
+        location: String(formData.get('location') ?? ''),
+        contractor_id: String(formData.get('contractor_id') ?? '') || null
+      },
       created_by: ctx.user.id
     })
     .select('id')
@@ -59,13 +63,21 @@ export default async function NewPermitPage({
   const supabase = await createSupabaseServerClient();
   const { error } = await searchParams;
 
-  const templates = ctx
-    ? (await supabase
-        .from('permit_templates')
-        .select('id,name,category')
-        .eq('workspace_id', ctx.workspaceId)
-        .order('name')).data ?? []
-    : [];
+  const [templates, contractors] = ctx
+    ? await Promise.all([
+        (await supabase
+          .from('permit_templates')
+          .select('id,name,category')
+          .eq('workspace_id', ctx.workspaceId)
+          .order('name')).data ?? [],
+        (await supabase
+          .from('contractors')
+          .select('id,name')
+          .eq('workspace_id', ctx.workspaceId)
+          .eq('status', 'active')
+          .order('name')).data ?? []
+      ])
+    : [[], []];
 
   return (
     <AppShell title="Create Permit">
@@ -86,6 +98,12 @@ export default async function NewPermitPage({
               <option key={t.id} value={t.id}>
                 {t.name} ({t.category})
               </option>
+            ))}
+          </select>
+          <select name="contractor_id" className="rounded-md border px-3 py-2 md:col-span-2">
+            <option value="">Select contractor (optional)</option>
+            {contractors.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
           <div className="md:col-span-2">

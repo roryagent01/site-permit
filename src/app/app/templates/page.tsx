@@ -10,10 +10,17 @@ async function createTemplateAction(formData: FormData) {
   'use server';
   const ctx = await getCurrentWorkspace();
   if (!ctx) return;
+  if (!['admin', 'owner'].includes(ctx.role)) return;
   const supabase = await createSupabaseServerClient();
 
   const name = String(formData.get('name') ?? '');
   const category = String(formData.get('category') ?? '');
+
+  const gatingMode = String(formData.get('gating_mode') || 'warn');
+  const requiredQualificationTypeIds = String(formData.get('required_qualification_type_ids') || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   const { data: template } = await supabase
     .from('permit_templates')
@@ -23,7 +30,11 @@ async function createTemplateAction(formData: FormData) {
       category,
       definition: {
         requiredFields: ['location', 'start_at', 'end_at'],
-        requiredApprovals: [{ order: 1, role: 'approver' }]
+        requiredApprovals: [{ order: 1, role: 'approver' }],
+        qualificationGate: {
+          mode: gatingMode,
+          requiredQualificationTypeIds
+        }
       },
       created_by: ctx.user.id
     })
@@ -36,7 +47,7 @@ async function createTemplateAction(formData: FormData) {
     action: 'template.created',
     objectType: 'permit_template',
     objectId: template?.id,
-    payload: { name, category }
+    payload: { name, category, gatingMode, requiredQualificationTypeIds }
   });
 
   revalidatePath('/app/templates');
@@ -61,6 +72,15 @@ export default async function TemplatesPage() {
           <form action={createTemplateAction} className="space-y-3">
             <input name="name" required placeholder="Hot Work Permit" className="w-full rounded-md border px-3 py-2" />
             <input name="category" required placeholder="Hot Work" className="w-full rounded-md border px-3 py-2" />
+            <select name="gating_mode" className="w-full rounded-md border px-3 py-2">
+              <option value="warn">Qualification gate: warn</option>
+              <option value="block">Qualification gate: block</option>
+            </select>
+            <input
+              name="required_qualification_type_ids"
+              placeholder="Required qualification type IDs (comma-separated)"
+              className="w-full rounded-md border px-3 py-2"
+            />
             <Button type="submit">Create template</Button>
           </form>
         </Card>

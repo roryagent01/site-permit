@@ -13,6 +13,7 @@ async function createContractorAction(formData: FormData) {
   'use server';
   const ctx = await getCurrentWorkspace();
   if (!ctx) return;
+  if (!['issuer', 'admin', 'owner'].includes(ctx.role)) return;
   const supabase = await createSupabaseServerClient();
 
   try {
