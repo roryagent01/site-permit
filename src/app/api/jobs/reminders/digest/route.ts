@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-import { reminderDigestEmailHtml, sendEmail } from '@/lib/notifications/email';
+import { reminderDigestEmailHtml, sendEmailWithRetry } from '@/lib/notifications/email';
 import { getWorkspaceRoleRecipientEmails } from '@/lib/notifications/workspace-recipients';
 import { enforceRateLimit, requestIp } from '@/lib/security/rate-limit';
+import { logEvent, requestCorrelationId } from '@/lib/observability/log';
 
 export async function POST(request: Request) {
+  const cid = requestCorrelationId(request.headers);
+  logEvent('reminder_digest.start', { cid });
+
   const rl = enforceRateLimit(`reminder-digest:${requestIp(request.headers)}`, 10, 60_000);
   if (!rl.allowed) return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
 
@@ -48,7 +52,7 @@ export async function POST(request: Request) {
 
     const recipients = await getWorkspaceRoleRecipientEmails(ws.id, ['owner', 'admin']);
     const emailResult = recipients.length
-      ? await sendEmail({
+      ? await sendEmailWithRetry({
           to: recipients,
           subject: `Qualification expiry digest (${ws.name})`,
           html: reminderDigestEmailHtml({
@@ -59,6 +63,17 @@ export async function POST(request: Request) {
           })
         })
       : { ok: false, error: 'no_recipients' };
+
+    if (!emailResult.ok) {
+      await admin.from('notification_failures').insert({
+        workspace_id: ws.id,
+        channel: 'email',
+        event_type: 'reminder_digest',
+        recipient,
+        payload: { deliveryKey, recipientCount: recipients.length, mode },
+        error_message: emailResult.error ?? 'unknown_email_error'
+      });
+    }
 
     const { error } = await admin.from('reminder_deliveries').upsert(
       {
@@ -74,7 +89,8 @@ export async function POST(request: Request) {
           mode,
           capped: mode === 'summary',
           emailError: emailResult.ok ? null : emailResult.error,
-          recipientCount: recipients.length
+          recipientCount: recipients.length,
+          attempts: (emailResult as { attempts?: number }).attempts ?? 1
         }
       },
       { onConflict: 'workspace_id,delivery_key,recipient' }
@@ -83,5 +99,6 @@ export async function POST(request: Request) {
     results.push({ workspaceId: ws.id, expiringCount: expiring?.length ?? 0, logged: !error, mode });
   }
 
+  logEvent('reminder_digest.complete', { cid, workspaces: results.length });
   return NextResponse.json({ ok: true, results });
 }

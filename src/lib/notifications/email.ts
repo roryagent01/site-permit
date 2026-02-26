@@ -30,6 +30,25 @@ export async function sendEmail(input: SendEmailInput): Promise<{ ok: boolean; i
   }
 }
 
+export async function sendEmailWithRetry(
+  input: SendEmailInput,
+  options: { maxAttempts?: number; baseDelayMs?: number } = {}
+): Promise<{ ok: boolean; id?: string; error?: string; attempts: number }> {
+  const maxAttempts = Math.max(1, options.maxAttempts ?? 3);
+  const baseDelayMs = Math.max(50, options.baseDelayMs ?? 250);
+
+  let last: { ok: boolean; id?: string; error?: string } = { ok: false, error: 'unknown' };
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    last = await sendEmail(input);
+    if (last.ok) return { ...last, attempts: attempt };
+    if (attempt < maxAttempts) {
+      await new Promise((r) => setTimeout(r, baseDelayMs * attempt));
+    }
+  }
+
+  return { ...last, attempts: maxAttempts };
+}
+
 export function permitSubmittedEmailHtml(args: {
   permitTitle: string;
   workspaceName: string;

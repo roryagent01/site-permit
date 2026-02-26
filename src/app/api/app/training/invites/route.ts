@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentWorkspace } from '@/lib/workspace/current';
 import { ok, fail } from '@/lib/api/response';
-import { sendEmail } from '@/lib/notifications/email';
+import { sendEmailWithRetry } from '@/lib/notifications/email';
 
 const schema = z.object({
   contractorId: z.string().uuid(),
@@ -75,11 +75,22 @@ export async function POST(request: Request) {
     const url = `${process.env.APP_BASE_URL ?? ''}/api/public/training/${token}`;
     created.push({ id: invite?.id ?? '', email: recipient.email, url });
 
-    await sendEmail({
+    const emailResult = await sendEmailWithRetry({
       to: recipient.email,
       subject: 'Site induction training link',
       html: `<p>Please complete your site induction before arrival.</p><p><a href="${url}">Open training link</a></p>`
     });
+
+    if (!emailResult.ok) {
+      await supabase.from('notification_failures').insert({
+        workspace_id: ctx.workspaceId,
+        channel: 'email',
+        event_type: 'training_invite',
+        recipient: recipient.email,
+        payload: { contractorId: parsed.data.contractorId, moduleId: parsed.data.moduleId },
+        error_message: emailResult.error ?? 'unknown_email_error'
+      });
+    }
   }
 
   return NextResponse.json(ok({ invites: created, count: created.length }));

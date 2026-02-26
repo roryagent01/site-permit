@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { enforceRateLimit, requestIp } from '@/lib/security/rate-limit';
+import { logEvent, requestCorrelationId } from '@/lib/observability/log';
 
 export async function POST(request: Request) {
+  const cid = requestCorrelationId(request.headers);
+  logEvent('permits_activate.start', { cid });
+
   const rl = enforceRateLimit(`permits-activate:${requestIp(request.headers)}`, 20, 60_000);
   if (!rl.allowed) return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
 
@@ -22,11 +26,15 @@ export async function POST(request: Request) {
     .lte('start_at', nowIso)
     .limit(500);
 
-  if (!duePermits?.length) return NextResponse.json({ ok: true, activated: 0 });
+  if (!duePermits?.length) {
+    logEvent('permits_activate.complete', { cid, activated: 0 });
+    return NextResponse.json({ ok: true, activated: 0 });
+  }
 
   const ids = duePermits.map((p) => p.id);
   const { error } = await admin.from('permits').update({ status: 'active', updated_at: nowIso }).in('id', ids);
   if (error) return NextResponse.json({ error: 'activate_failed' }, { status: 500 });
 
+  logEvent('permits_activate.complete', { cid, activated: ids.length });
   return NextResponse.json({ ok: true, activated: ids.length });
 }
