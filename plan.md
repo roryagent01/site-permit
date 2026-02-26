@@ -99,7 +99,7 @@ This file is the source of truth for delivery tracking.
 | DS-22.B audit log UX completeness | PL-13.2 | done |
 | DS-22.C self-serve billing automation | PL-13.3 | done |
 | DS-22.D offline tolerance (PWA-lite) | PL-13.4 | done |
-| DS-22.E malware scanning for uploads | PL-13.5 | partial |
+| DS-22.E malware scanning for uploads | PL-13.5 | done |
 | DS-22.F regional date formatting and i18n baseline | PL-13.6 | done |
 | DS-22.G high-volume pagination/filtering hardening | PL-13.7 | done |
 
@@ -1003,16 +1003,20 @@ When any DS-linked feature is shipped:
 - Added file scan result model and scanning job endpoint
 - New uploads now create pending scan records
 - New file registrations are blocked by default (`pending_scan`) until scanner marks clean
+- Added staging-path to final-path promotion model; clean files are moved from staging to final path only after scan pass
 - Added pluggable scan engine abstraction with optional ClamAV HTTP integration and baseline fallback
 
 **Where**
 - `db/migrations/0016_billing_offline_scan_i18n.sql` (`file_scan_results`)
+- `db/migrations/0019_file_staging_promotion.sql` (`files.final_path`)
+- `src/app/api/upload/sign/route.ts`
+- `src/components/files/upload-widget.tsx`
 - `src/app/api/files/register/route.ts`
 - `src/app/api/jobs/files/scan/route.ts`
 - `src/lib/security/file-scan.ts`
 - `.env.example` (`CLAMAV_SCAN_ENDPOINT`)
 
-**Status**: partial (hard gating now enforced in current consumers; pre-storage scan-before-persist architecture still pending)
+**Status**: done (staging upload + blocked-by-default + scan-gated promotion to final path implemented)
 
 ### [x] PL-13.6 (DS-22.F) — Regional date formatting and i18n baseline
 **What was built**

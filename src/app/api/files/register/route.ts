@@ -8,6 +8,7 @@ import { enforceRateLimit, requestIp } from '@/lib/security/rate-limit';
 const schema = z.object({
   bucket: z.enum(['permit_attachments', 'qualification_evidence']),
   path: z.string().min(1),
+  finalPath: z.string().min(1),
   sizeBytes: z.number().int().nonnegative().optional(),
   permitId: z.string().uuid().optional(),
   contractorQualificationId: z.string().uuid().optional()
@@ -30,6 +31,7 @@ export async function POST(request: Request) {
       workspace_id: ctx.workspaceId,
       bucket: parsed.data.bucket,
       path: parsed.data.path,
+      final_path: parsed.data.finalPath,
       size_bytes: parsed.data.sizeBytes ?? null,
       permit_id: parsed.data.permitId ?? null,
       contractor_qualification_id: parsed.data.contractorQualificationId ?? null,

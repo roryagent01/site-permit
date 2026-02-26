@@ -712,8 +712,8 @@ A workspace can:
 ### DS-22.E Malware scanning for uploaded evidence
 - Scan uploaded evidence files before permanent acceptance/storage.
 - Quarantine or block suspicious files and surface safe user messaging.
-- Implemented baseline in V1.1 with scan queue/results model, scheduled scanner, pluggable scan adapter, and blocked-by-default file gating until clean.
-- **Status:** partial (scan currently post-upload registration; strict pre-storage scanning remains to finalize).
+- Implemented in V1.1 with scan queue/results model, scheduled scanner, pluggable scan adapter, blocked-by-default file gating, and staging-to-final promotion only after clean scan.
+- **Status:** done.
 
 ### DS-22.F Regional date formatting and i18n baseline
 - Default to locale-aware date formatting with strong support for DD/MM/YYYY in target markets.

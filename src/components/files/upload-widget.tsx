@@ -37,7 +37,7 @@ export function UploadWidget({ bucket, permitId, contractorQualificationId }: Pr
               return;
             }
 
-            const sign = (await signRes.json()) as { token: string; path: string; bucket: string };
+            const sign = (await signRes.json()) as { token: string; path: string; finalPath: string; bucket: string };
             const supabase = createSupabaseBrowserClient();
 
             setStatus('Uploading file...');
@@ -55,6 +55,7 @@ export function UploadWidget({ bucket, permitId, contractorQualificationId }: Pr
               body: JSON.stringify({
                 bucket,
                 path: sign.path,
+                finalPath: sign.finalPath,
                 sizeBytes: file.size,
                 permitId,
                 contractorQualificationId

@@ -31,7 +31,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'storage_limit_reached' }, { status: 403 });
   }
 
-  const path = `${ctx.workspaceId}/${Date.now()}-${parsed.data.fileName}`;
+  const fileKey = `${Date.now()}-${parsed.data.fileName}`;
+  const path = `${ctx.workspaceId}/_staging/${fileKey}`;
+  const finalPath = `${ctx.workspaceId}/${fileKey}`;
   const admin = createSupabaseAdminClient();
   const { data, error } = await admin.storage.from(parsed.data.bucket).createSignedUploadUrl(path);
 
@@ -45,12 +47,13 @@ export async function POST(request: Request) {
     actorUserId: ctx.user.id,
     action: 'file.upload_sign_requested',
     objectType: 'file',
-    payload: { bucket: parsed.data.bucket, path, sizeBytes: parsed.data.sizeBytes }
+    payload: { bucket: parsed.data.bucket, path, finalPath, sizeBytes: parsed.data.sizeBytes }
   });
 
   return NextResponse.json({
     token: data.token,
     path,
+    finalPath,
     bucket: parsed.data.bucket,
     signedUrl: data.signedUrl
   });
