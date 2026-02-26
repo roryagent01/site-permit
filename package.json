@@ -11,7 +11,10 @@
     "loadtest:permit": "k6 run loadtests/permit-actions.js",
     "loadtest:reminders": "k6 run loadtests/reminder-digest.js",
     "loadtest:training": "k6 run loadtests/training-invites.js",
-    "loadtest:all": "npm run loadtest:permit && npm run loadtest:reminders && npm run loadtest:training"
+    "loadtest:all": "npm run loadtest:permit && npm run loadtest:reminders && npm run loadtest:training",
+    "preflight": "bash ./scripts/preflight.sh",
+    "check:migrations": "bash ./scripts/check-migrations.sh",
+    "release:check": "bash ./scripts/release.sh"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

@@ -60,7 +60,7 @@ This file is the source of truth for delivery tracking.
 | DS-15.B operational security hardening | PL-6.2 | done |
 | DS-15.C observability/alerting | PL-6.3 | done |
 | DS-15.D data lifecycle/governance | PL-6.4 | done |
-| DS-15.E delivery/change management | PL-6.5 | partial |
+| DS-15.E delivery/change management | PL-6.5 | done |
 | DS-15.F performance/scale validation | PL-6.6 | done |
 | DS-15.G enterprise readiness track | PL-6.7 | done |
 | DS-16.A permit duplication + quick issue | PL-7.1 | done |
@@ -489,12 +489,19 @@ When any DS-linked feature is shipped:
 ### [x] PL-6.5 (DS-15.E) — Delivery/change management
 **What was built**
 - Added delivery/change management playbook covering promotion and migration safety
-- Documented current CI workflow scope blocker and mitigation
+- Added migration preflight/rollback runbook
+- Added executable release gate scripts for migration checks + lint/test/build + env validation
+- Documented current CI workflow scope blocker and temporary manual control
 
 **Where**
 - `docs/production/delivery-change-management.md`
+- `docs/production/migration-runbook.md`
+- `scripts/check-migrations.sh`
+- `scripts/preflight.sh`
+- `scripts/release.sh`
+- `package.json` scripts (`preflight`, `check:migrations`, `release:check`)
 
-**Status**: partial (CI workflow enforcement still blocked until GitHub token includes workflow scope)
+**Status**: done
 
 ### [x] PL-6.6 (DS-15.F) — Performance & scale validation
 **What was built**
