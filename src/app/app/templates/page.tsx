@@ -216,12 +216,16 @@ export default async function TemplatesPage() {
                   <div className="font-medium">{t.name}</div>
                   <div className="text-slate-600">{t.category}</div>
                   <div className="mt-1 text-xs text-slate-500">Versions: {versions.map((v) => `v${v.version_no}`).join(', ') || 'none'}</div>
-                  {versions[0] ? (
-                    <form action={rollbackTemplateAction} className="mt-2">
+                  {versions.length ? (
+                    <form action={rollbackTemplateAction} className="mt-2 flex items-center gap-2">
                       <input type="hidden" name="template_id" value={t.id} />
-                      <input type="hidden" name="version_id" value={versions[0].id} />
+                      <select name="version_id" className="rounded border px-2 py-1 text-xs">
+                        {versions.map((v) => (
+                          <option key={v.id} value={v.id}>{`v${v.version_no}`}</option>
+                        ))}
+                      </select>
                       <Button type="submit" variant="secondary" className="min-h-0 px-2 py-1 text-xs">
-                        Rollback to latest snapshot
+                        Rollback
                       </Button>
                     </form>
                   ) : null}

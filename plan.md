@@ -74,14 +74,14 @@ This file is the source of truth for delivery tracking.
 | DS-16.I expiring public share links | PL-7.9 | done |
 | DS-16.J template versioning + rollback | PL-7.10 | partial |
 | DS-16.K site-level dashboards | PL-7.11 | done |
-| DS-16.L mobile field UX optimization | PL-7.12 | partial |
+| DS-16.L mobile field UX optimization | PL-7.12 | done |
 | DS-17.A API parity for core capabilities | PL-8.1 | done |
 | DS-17.B machine-usable contracts | PL-8.2 | done |
 | DS-17.C API security parity | PL-8.3 | done |
 | DS-17.D agent integration documentation | PL-8.4 | done |
 | DS-18.A internal employee onboarding invite links | PL-9.1 | done |
 | DS-18.B contractor self-onboarding invite links | PL-9.2 | done |
-| DS-18.C invite security and lifecycle | PL-9.3 | partial |
+| DS-18.C invite security and lifecycle | PL-9.3 | done |
 | DS-18.D agent-operable onboarding APIs | PL-9.4 | done |
 | DS-19.A training modules | PL-10.1 | done |
 | DS-19.B bulk training dispatch | PL-10.2 | done |
@@ -620,13 +620,14 @@ When any DS-linked feature is shipped:
 **What was built**
 - Existing field-friendly button sizing and compact action patterns
 - Upload and decision actions optimized for quick mobile workflows
+- Added mobile sticky quick-action rail on permit detail
 
 **Where**
 - `src/components/ui/button.tsx`
 - `src/app/app/permits/[id]/page.tsx`
 - `src/components/files/upload-widget.tsx`
 
-**Status**: partial (dedicated mobile action rail and layout pass still needed)
+**Status**: done
 
 ---
 
@@ -711,13 +712,15 @@ When any DS-linked feature is shipped:
 **What was built**
 - Invite expiry, revocation, one-time acceptance semantics in APIs
 - Validation checks for not_found/revoked/expired/used states
+- Added revoke actions in Admin UI for employee/contractor invites
 
 **Where**
 - `src/app/api/public/onboarding/employee/[token]/route.ts`
 - `src/app/api/public/onboarding/contractor/[token]/route.ts`
 - `src/app/api/app/onboarding/{employee-invites,contractor-invites}/route.ts`
+- `src/app/app/admin/page.tsx`
 
-**Status**: partial (dedicated revoke UI actions and invite email delivery still to add)
+**Status**: done
 
 ### [x] PL-9.4 (DS-18.D) — Agent-operable onboarding APIs
 **What was built**

@@ -810,6 +810,26 @@ export default async function PermitDetailPage({ params }: { params: Promise<{ i
           </Card>
         </div>
       </div>
+
+      <div className="fixed bottom-0 left-0 right-0 z-20 border-t bg-white/95 p-2 backdrop-blur md:hidden">
+        <div className="mx-auto flex max-w-3xl items-center gap-2">
+          <form action={transitionPermitAction} className="flex-1">
+            <input type="hidden" name="permit_id" value={permit.id} />
+            <input type="hidden" name="next_status" value="submitted" />
+            <Button type="submit" variant="secondary" className="w-full min-h-0 px-2 py-2 text-xs">Submit</Button>
+          </form>
+          <form action={approvePermitAction} className="flex-1">
+            <input type="hidden" name="permit_id" value={permit.id} />
+            <input type="hidden" name="comment" value="Approved via mobile bar" />
+            <Button type="submit" className="w-full min-h-0 px-2 py-2 text-xs">Approve</Button>
+          </form>
+          <form action={transitionPermitAction} className="flex-1">
+            <input type="hidden" name="permit_id" value={permit.id} />
+            <input type="hidden" name="next_status" value="active" />
+            <Button type="submit" variant="secondary" className="w-full min-h-0 px-2 py-2 text-xs">Activate</Button>
+          </form>
+        </div>
+      </div>
     </AppShell>
   );
 }

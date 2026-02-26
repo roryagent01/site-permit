@@ -91,6 +91,44 @@ async function createContractorInviteAction(formData: FormData) {
   revalidatePath('/app/admin');
 }
 
+async function revokeEmployeeInviteAction(formData: FormData) {
+  'use server';
+  const ctx = await getCurrentWorkspace();
+  if (!ctx || !['owner', 'admin'].includes(ctx.role)) return;
+  const inviteId = String(formData.get('invite_id') ?? '');
+  if (!inviteId) return;
+
+  const supabase = await createSupabaseServerClient();
+  await supabase
+    .from('employee_invites')
+    .update({ revoked_at: new Date().toISOString() })
+    .eq('workspace_id', ctx.workspaceId)
+    .eq('id', inviteId)
+    .is('accepted_at', null)
+    .is('revoked_at', null);
+
+  revalidatePath('/app/admin');
+}
+
+async function revokeContractorInviteAction(formData: FormData) {
+  'use server';
+  const ctx = await getCurrentWorkspace();
+  if (!ctx || !['owner', 'admin', 'issuer'].includes(ctx.role)) return;
+  const inviteId = String(formData.get('invite_id') ?? '');
+  if (!inviteId) return;
+
+  const supabase = await createSupabaseServerClient();
+  await supabase
+    .from('contractor_invites')
+    .update({ revoked_at: new Date().toISOString() })
+    .eq('workspace_id', ctx.workspaceId)
+    .eq('id', inviteId)
+    .is('accepted_at', null)
+    .is('revoked_at', null);
+
+  revalidatePath('/app/admin');
+}
+
 export default async function AdminPage({
   searchParams
 }: {
@@ -182,7 +220,13 @@ export default async function AdminPage({
               <li key={i.id} className="rounded border p-2">
                 <div className="font-medium">{i.email} • {i.role}</div>
                 <div className="text-slate-600 break-all">{`${process.env.APP_BASE_URL ?? ''}/api/public/onboarding/employee/${i.token}`}</div>
-                <div className="text-slate-500">Expires: {new Date(i.expires_at).toLocaleString()} {i.accepted_at ? '• accepted' : ''}</div>
+                <div className="text-slate-500">Expires: {new Date(i.expires_at).toLocaleString()} {i.accepted_at ? '• accepted' : ''} {i.revoked_at ? '• revoked' : ''}</div>
+                {!i.accepted_at && !i.revoked_at ? (
+                  <form action={revokeEmployeeInviteAction} className="mt-1">
+                    <input type="hidden" name="invite_id" value={i.id} />
+                    <Button type="submit" variant="danger" className="min-h-0 px-2 py-1 text-xs">Revoke</Button>
+                  </form>
+                ) : null}
               </li>
             ))}
             {!employeeInvites.length ? <li className="text-slate-500">No employee invites yet.</li> : null}
@@ -204,7 +248,13 @@ export default async function AdminPage({
             {contractorInvites.map((i) => (
               <li key={i.id} className="rounded border p-2">
                 <div className="text-slate-600 break-all">{`${process.env.APP_BASE_URL ?? ''}/api/public/onboarding/contractor/${i.token}`}</div>
-                <div className="text-slate-500">Expires: {new Date(i.expires_at).toLocaleString()} {i.accepted_at ? '• accepted' : ''}</div>
+                <div className="text-slate-500">Expires: {new Date(i.expires_at).toLocaleString()} {i.accepted_at ? '• accepted' : ''} {i.revoked_at ? '• revoked' : ''}</div>
+                {!i.accepted_at && !i.revoked_at ? (
+                  <form action={revokeContractorInviteAction} className="mt-1">
+                    <input type="hidden" name="invite_id" value={i.id} />
+                    <Button type="submit" variant="danger" className="min-h-0 px-2 py-1 text-xs">Revoke</Button>
+                  </form>
+                ) : null}
               </li>
             ))}
             {!contractorInvites.length ? <li className="text-slate-500">No contractor invites yet.</li> : null}
