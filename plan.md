@@ -53,7 +53,7 @@ This file is the source of truth for delivery tracking.
 | DS-12.A env contract | PL-0.3 | done |
 | DS-12.B supabase setup checklist | PL-5.4 | done |
 | DS-13.A automated tests | PL-3.4 | done |
-| DS-13.B CI gates | PL-3.4 | partial |
+| DS-13.B CI gates | PL-3.4 | done |
 | DS-14.A ICP definition | PL-5.1 | done |
 | DS-14.B success metrics | PL-5.1 | done |
 | DS-15.A reliability/recovery | PL-6.1 | done |
@@ -298,13 +298,15 @@ This file is the source of truth for delivery tracking.
 **What was built**
 - Vitest config + domain tests
 - TS lint/test/build scripts
+- GitHub CI workflow enforcing lint/test/build on push + PR
 
 **Where**
 - `vitest.config.ts`
 - `src/test/*.spec.ts`
 - `package.json`
+- `.github/workflows/ci.yml`
 
-**Status**: partial (workflow file not pushed yet due token scope)
+**Status**: done
 
 ---
 
