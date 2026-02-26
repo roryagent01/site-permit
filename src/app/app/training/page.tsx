@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { formatDateValue } from '@/lib/i18n/date';
 
 type Module = { id: string; title: string; summary: string | null; content_url: string | null; active: boolean };
 type Contractor = { id: string; name: string };
@@ -201,7 +202,7 @@ export default function TrainingPage() {
           </form>
           <ul className="mt-3 space-y-1 text-xs text-slate-600">
             {invites.slice(0, 12).map((i) => (
-              <li key={i.id}>{i.recipient_email} • {i.completed_at ? 'completed' : 'pending'} • expires {new Date(i.expires_at).toLocaleString()}</li>
+              <li key={i.id}>{i.recipient_email} • {i.completed_at ? 'completed' : 'pending'} • expires {formatDateValue(i.expires_at)}</li>
             ))}
             {!invites.length && !loading ? <li>No invites yet.</li> : null}
           </ul>

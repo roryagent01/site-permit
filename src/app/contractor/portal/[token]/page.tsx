@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { formatDateValue } from '@/lib/i18n/date';
 
 async function getPortalData(token: string) {
   const base = process.env.APP_BASE_URL ?? 'http://localhost:3000';
@@ -39,7 +40,7 @@ export default async function ContractorPortalTokenPage({ params }: { params: Pr
           {training.map((t: any) => (
             <li key={t.id} className="rounded border p-2">
               <div className="font-medium">{t.training_modules?.title ?? 'Training'}</div>
-              <div className="text-slate-600">{t.recipient_email} • {new Date(t.completed_at).toLocaleString()}</div>
+              <div className="text-slate-600">{t.recipient_email} • {formatDateValue(t.completed_at)}</div>
             </li>
           ))}
           {!training.length ? <li className="text-slate-500">No completed training records yet.</li> : null}

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { AppShell } from '@/components/app-shell';
+import { formatDateValue } from '@/lib/i18n/date';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { requireAuth } from '@/lib/auth/rbac';
 import { Card } from '@/components/ui/card';
@@ -55,7 +56,7 @@ export default async function DashboardPage() {
           <Card title="Activation metric">
             <p className="text-sm text-slate-700">
               {firstPermit?.created_at
-                ? `First permit created: ${new Date(firstPermit.created_at).toLocaleString()}`
+                ? `First permit created: ${formatDateValue(firstPermit.created_at)}`
                 : 'No permit yet. Target: first permit within 30 minutes.'}
             </p>
             {!firstPermit?.created_at ? (

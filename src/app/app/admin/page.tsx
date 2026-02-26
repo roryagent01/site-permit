@@ -290,7 +290,7 @@ export default async function AdminPage({
               <li key={i.id} className="rounded border p-2">
                 <div className="font-medium">{i.email} • {i.role}</div>
                 <div className="text-slate-600 break-all">{`${process.env.APP_BASE_URL ?? ''}/api/public/onboarding/employee/${i.token}`}</div>
-                <div className="text-slate-500">Expires: {new Date(i.expires_at).toLocaleString()} {i.accepted_at ? '• accepted' : ''} {i.revoked_at ? '• revoked' : ''}</div>
+                <div className="text-slate-500">Expires: {formatDateValue(i.expires_at, { locale, dateFormat })} {i.accepted_at ? '• accepted' : ''} {i.revoked_at ? '• revoked' : ''}</div>
                 {!i.accepted_at && !i.revoked_at ? (
                   <form action={revokeEmployeeInviteAction} className="mt-1">
                     <input type="hidden" name="invite_id" value={i.id} />
@@ -318,7 +318,7 @@ export default async function AdminPage({
             {contractorInvites.map((i) => (
               <li key={i.id} className="rounded border p-2">
                 <div className="text-slate-600 break-all">{`${process.env.APP_BASE_URL ?? ''}/api/public/onboarding/contractor/${i.token}`}</div>
-                <div className="text-slate-500">Expires: {new Date(i.expires_at).toLocaleString()} {i.accepted_at ? '• accepted' : ''} {i.revoked_at ? '• revoked' : ''}</div>
+                <div className="text-slate-500">Expires: {formatDateValue(i.expires_at, { locale, dateFormat })} {i.accepted_at ? '• accepted' : ''} {i.revoked_at ? '• revoked' : ''}</div>
                 {!i.accepted_at && !i.revoked_at ? (
                   <form action={revokeContractorInviteAction} className="mt-1">
                     <input type="hidden" name="invite_id" value={i.id} />

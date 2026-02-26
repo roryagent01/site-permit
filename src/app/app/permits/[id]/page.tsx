@@ -13,6 +13,7 @@ import { evaluateQualificationGate } from '@/lib/domain/qualification-gate';
 import { UploadWidget } from '@/components/files/upload-widget';
 import { getWorkspaceRoleRecipientEmails } from '@/lib/notifications/workspace-recipients';
 import { permitDecisionEmailHtml, permitSubmittedEmailHtml, sendEmail } from '@/lib/notifications/email';
+import { formatDateValue } from '@/lib/i18n/date';
 
 type QualificationGateResult = { blocked: boolean; reason?: string };
 
@@ -601,7 +602,12 @@ export default async function PermitDetailPage({ params }: { params: Promise<{ i
 
   if (!permit) notFound();
 
-  const [{ data: approvals }, { data: attachments }, { data: checklist }, { data: tasks }, { data: briefings }, { data: shareLinks }] = await Promise.all([
+  const [{ data: workspacePrefs }, { data: approvals }, { data: attachments }, { data: checklist }, { data: tasks }, { data: briefings }, { data: shareLinks }] = await Promise.all([
+    supabase
+      .from('workspaces')
+      .select('locale,date_format')
+      .eq('id', ctx.workspaceId)
+      .maybeSingle(),
     supabase
       .from('permit_approvals')
       .select('id,decision,comment,decided_at,approver_user_id')
@@ -641,6 +647,8 @@ export default async function PermitDetailPage({ params }: { params: Promise<{ i
   ]);
 
   const stepState = await getNextRequiredApprovalRole(ctx.workspaceId, id, permit.template_id, supabase);
+  const locale = (workspacePrefs?.locale as string | undefined) ?? 'en-IE';
+  const dateFormat = (workspacePrefs?.date_format as 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD' | undefined) ?? 'DD/MM/YYYY';
 
   return (
     <AppShell title="Permit Detail">
@@ -751,7 +759,7 @@ export default async function PermitDetailPage({ params }: { params: Promise<{ i
               {tasks?.map((t) => (
                 <li key={t.id} className="rounded border p-2">
                   <div className="font-medium">{t.title}</div>
-                  <div className="text-slate-600">Status: {t.status} • Due: {t.due_at ? new Date(t.due_at).toLocaleString() : '-'}</div>
+                  <div className="text-slate-600">Status: {t.status} • Due: {t.due_at ? formatDateValue(t.due_at, { locale, dateFormat }) : '-'}</div>
                   {t.status !== 'done' ? (
                     <form action={completeTaskAction} className="mt-1">
                       <input type="hidden" name="permit_id" value={permit.id} />
@@ -777,7 +785,7 @@ export default async function PermitDetailPage({ params }: { params: Promise<{ i
               {briefings?.map((b) => (
                 <li key={b.id} className="rounded border p-2">
                   <div className="font-medium">{b.title}</div>
-                  <div className="text-slate-600">{new Date(b.held_at).toLocaleString()}</div>
+                  <div className="text-slate-600">{formatDateValue(b.held_at, { locale, dateFormat })}</div>
                   <div className="text-slate-600">{b.notes || '-'}</div>
                   <div className="text-slate-500">
                     Attendees: {((b.permit_briefing_attendees as Array<{ attendee_name: string }> | null) ?? []).map((a) => a.attendee_name).join(', ') || '-'}
@@ -798,7 +806,7 @@ export default async function PermitDetailPage({ params }: { params: Promise<{ i
               {shareLinks?.map((s) => (
                 <li key={s.id} className="rounded border p-2">
                   <div className="font-medium truncate">{`${process.env.APP_BASE_URL ?? ''}/api/public/permits/share/${s.token}`}</div>
-                  <div className="text-slate-600">Expires: {new Date(s.expires_at).toLocaleString()} {s.revoked_at ? '• revoked' : ''}</div>
+                  <div className="text-slate-600">Expires: {formatDateValue(s.expires_at, { locale, dateFormat })} {s.revoked_at ? '• revoked' : ''}</div>
                   {!s.revoked_at ? (
                     <form action={revokeShareLinkAction} className="mt-1">
                       <input type="hidden" name="permit_id" value={permit.id} />
