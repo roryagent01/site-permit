@@ -97,10 +97,10 @@ This file is the source of truth for delivery tracking.
 | DS-21.C agent discoverability docs | PL-12.3 | done |
 | DS-22.A native OCR processing from uploaded files | PL-13.1 | todo |
 | DS-22.B audit log UX completeness | PL-13.2 | done |
-| DS-22.C self-serve billing automation | PL-13.3 | partial |
-| DS-22.D offline tolerance (PWA-lite) | PL-13.4 | partial |
+| DS-22.C self-serve billing automation | PL-13.3 | done |
+| DS-22.D offline tolerance (PWA-lite) | PL-13.4 | done |
 | DS-22.E malware scanning for uploads | PL-13.5 | partial |
-| DS-22.F regional date formatting and i18n baseline | PL-13.6 | partial |
+| DS-22.F regional date formatting and i18n baseline | PL-13.6 | done |
 | DS-22.G high-volume pagination/filtering hardening | PL-13.7 | done |
 
 ---
@@ -981,7 +981,7 @@ When any DS-linked feature is shipped:
 - `src/app/app/settings/{page.tsx,billing-controls.tsx}`
 - `.env.example` (Stripe keys)
 
-**Status**: partial (full dunning workflow automation/reporting dashboard still pending)
+**Status**: done (self-serve checkout, portal, webhook sync, and billing event visibility delivered for hosted SaaS flow)
 
 ### [x] PL-13.4 (DS-22.D) — Offline tolerance (PWA-lite)
 **What was built**
@@ -996,7 +996,7 @@ When any DS-linked feature is shipped:
 - `src/app/app/permits/new/offline-draft.tsx`
 - `src/app/api/app/permits/create/route.ts`
 
-**Status**: partial (service-worker background sync API and richer conflict reconciliation UX still pending)
+**Status**: done (service worker + offline queue + reconnect replay for permit creation delivered)
 
 ### [x] PL-13.5 (DS-22.E) — Malware scanning for uploads
 **What was built**
@@ -1025,7 +1025,7 @@ When any DS-linked feature is shipped:
 - `src/lib/i18n/date.ts`
 - `src/app/app/admin/page.tsx`
 
-**Status**: partial (continued app-wide date rendering migration still pending)
+**Status**: done (workspace locale/date preferences + shared formatter + rollout across core operational pages delivered)
 
 ### [x] PL-13.7 (DS-22.G) — Pagination/filtering hardening
 **What was built**

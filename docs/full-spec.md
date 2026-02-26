@@ -700,18 +700,26 @@ A workspace can:
 ### DS-22.C Self-serve billing automation
 - Integrate payment gateway (Stripe) for self-serve subscription onboarding and plan upgrades.
 - Replace manual billing dependency for Starter/Growth/Scale hosted SaaS flow.
+- Implemented in V1.1 with Stripe checkout + billing portal + webhook sync + billing event visibility in settings.
+- **Status:** done.
 
 ### DS-22.D Offline tolerance (PWA-lite)
 - Add service worker strategy to support temporary offline permit drafting and queued submission retry.
 - Prioritize permit create/submit flow resilience for field conditions.
+- Implemented in V1.1 with service worker registration, offline draft queue, and reconnect replay to permit create API.
+- **Status:** done.
 
 ### DS-22.E Malware scanning for uploaded evidence
 - Scan uploaded evidence files before permanent acceptance/storage.
 - Quarantine or block suspicious files and surface safe user messaging.
+- Implemented baseline in V1.1 with scan queue/results model, scheduled scanner, pluggable scan adapter, and quarantined file hiding.
+- **Status:** partial (scan currently post-upload registration; hard pre-acceptance enforcement remains to finalize).
 
 ### DS-22.F Regional date formatting and i18n baseline
 - Default to locale-aware date formatting with strong support for DD/MM/YYYY in target markets.
 - Prevent ambiguity for permit validity and expiry-critical dates.
+- Implemented in V1.1 with workspace locale/date preferences, shared formatter utility, and rollout across core operations pages.
+- **Status:** done.
 
 ### DS-22.G Large-list pagination and filtering hardening
 - Add server-side pagination and robust filtering for high-volume lists (`permits`, `contractors`, etc.).
