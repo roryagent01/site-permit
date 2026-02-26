@@ -146,6 +146,26 @@ async function transitionPermitAction(formData: FormData) {
     }
   }
 
+  if (nextStatus === 'active') {
+    const { data: checklist } = await supabase
+      .from('permit_checklist_items')
+      .select('id,required,checked')
+      .eq('workspace_id', ctx.workspaceId)
+      .eq('permit_id', permitId);
+    const missing = (checklist ?? []).some((i) => i.required && !i.checked);
+    if (missing) {
+      await logAuditEvent({
+        workspaceId: ctx.workspaceId,
+        actorUserId: ctx.user.id,
+        action: 'permit.activate_blocked_checklist',
+        objectType: 'permit',
+        objectId: permitId,
+        payload: { reason: 'required_checklist_incomplete' }
+      });
+      return;
+    }
+  }
+
   const updatePayload: Record<string, unknown> = { status: nextStatus, updated_at: new Date().toISOString() };
   if (nextStatus === 'closed') {
     updatePayload.end_at = permitForGate?.end_at ?? new Date().toISOString();
@@ -356,6 +376,15 @@ async function decisionPermitAction(formData: FormData) {
       .update({ status: 'needs_changes', needs_changes_reason: comment })
       .eq('workspace_id', ctx.workspaceId)
       .eq('id', permitId);
+
+    await supabase.from('permit_tasks').insert({
+      workspace_id: ctx.workspaceId,
+      permit_id: permitId,
+      title: `Address changes: ${comment.slice(0, 120)}`,
+      status: 'open',
+      due_at: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+      assignee_user_id: null
+    });
   }
 
   const recipients = await getWorkspaceRoleRecipientEmails(ctx.workspaceId, ['issuer', 'admin', 'owner']);
@@ -385,6 +414,49 @@ async function decisionPermitAction(formData: FormData) {
   revalidatePath(`/app/permits/${permitId}`);
 }
 
+async function addChecklistItemAction(formData: FormData) {
+  'use server';
+  const permitId = String(formData.get('permit_id'));
+  const label = String(formData.get('label') ?? '').trim();
+  const required = String(formData.get('required') ?? 'on') === 'on';
+  const ctx = await getCurrentWorkspace();
+  if (!ctx || !['issuer', 'admin', 'owner'].includes(ctx.role) || !label) return;
+  const supabase = await createSupabaseServerClient();
+  await supabase.from('permit_checklist_items').insert({ workspace_id: ctx.workspaceId, permit_id: permitId, label, required });
+  revalidatePath(`/app/permits/${permitId}`);
+}
+
+async function toggleChecklistItemAction(formData: FormData) {
+  'use server';
+  const permitId = String(formData.get('permit_id'));
+  const itemId = String(formData.get('item_id'));
+  const checked = String(formData.get('checked')) === 'true';
+  const ctx = await getCurrentWorkspace();
+  if (!ctx || !['issuer', 'approver', 'admin', 'owner'].includes(ctx.role)) return;
+  const supabase = await createSupabaseServerClient();
+  await supabase
+    .from('permit_checklist_items')
+    .update({ checked, checked_by: ctx.user.id, checked_at: checked ? new Date().toISOString() : null })
+    .eq('workspace_id', ctx.workspaceId)
+    .eq('id', itemId);
+  revalidatePath(`/app/permits/${permitId}`);
+}
+
+async function completeTaskAction(formData: FormData) {
+  'use server';
+  const permitId = String(formData.get('permit_id'));
+  const taskId = String(formData.get('task_id'));
+  const ctx = await getCurrentWorkspace();
+  if (!ctx || !['issuer', 'admin', 'owner'].includes(ctx.role)) return;
+  const supabase = await createSupabaseServerClient();
+  await supabase
+    .from('permit_tasks')
+    .update({ status: 'done', completed_at: new Date().toISOString() })
+    .eq('workspace_id', ctx.workspaceId)
+    .eq('id', taskId);
+  revalidatePath(`/app/permits/${permitId}`);
+}
+
 export default async function PermitDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const ctx = await getCurrentWorkspace();
@@ -400,7 +472,7 @@ export default async function PermitDetailPage({ params }: { params: Promise<{ i
 
   if (!permit) notFound();
 
-  const [{ data: approvals }, { data: attachments }] = await Promise.all([
+  const [{ data: approvals }, { data: attachments }, { data: checklist }, { data: tasks }] = await Promise.all([
     supabase
       .from('permit_approvals')
       .select('id,decision,comment,decided_at,approver_user_id')
@@ -410,6 +482,18 @@ export default async function PermitDetailPage({ params }: { params: Promise<{ i
     supabase
       .from('files')
       .select('id,path,bucket,created_at')
+      .eq('workspace_id', ctx.workspaceId)
+      .eq('permit_id', id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('permit_checklist_items')
+      .select('id,label,required,checked')
+      .eq('workspace_id', ctx.workspaceId)
+      .eq('permit_id', id)
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('permit_tasks')
+      .select('id,title,status,due_at')
       .eq('workspace_id', ctx.workspaceId)
       .eq('permit_id', id)
       .order('created_at', { ascending: false })
@@ -481,17 +565,62 @@ export default async function PermitDetailPage({ params }: { params: Promise<{ i
             </div>
           </Card>
         </div>
-        <Card title="Approvals">
-          <ul className="space-y-2 text-sm">
-            {approvals?.map((a) => (
-              <li key={a.id} className="rounded border p-2">
-                <div className="font-medium">{a.decision}</div>
-                <div className="text-slate-600">{a.comment}</div>
-              </li>
-            ))}
-            {!approvals?.length ? <li className="text-slate-500">No approval events yet.</li> : null}
-          </ul>
-        </Card>
+        <div className="space-y-4">
+          <Card title="Approvals">
+            <ul className="space-y-2 text-sm">
+              {approvals?.map((a) => (
+                <li key={a.id} className="rounded border p-2">
+                  <div className="font-medium">{a.decision}</div>
+                  <div className="text-slate-600">{a.comment}</div>
+                </li>
+              ))}
+              {!approvals?.length ? <li className="text-slate-500">No approval events yet.</li> : null}
+            </ul>
+          </Card>
+
+          <Card title="Pre-start checklist">
+            <form action={addChecklistItemAction} className="mb-2 flex gap-2">
+              <input type="hidden" name="permit_id" value={permit.id} />
+              <input name="label" placeholder="Checklist item" className="w-full rounded border px-2 py-1 text-xs" />
+              <Button type="submit" variant="secondary" className="min-h-0 px-3 py-1.5 text-xs">Add</Button>
+            </form>
+            <ul className="space-y-2 text-xs">
+              {checklist?.map((c) => (
+                <li key={c.id} className="rounded border p-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span>{c.label}{c.required ? ' *' : ''}</span>
+                    <form action={toggleChecklistItemAction}>
+                      <input type="hidden" name="permit_id" value={permit.id} />
+                      <input type="hidden" name="item_id" value={c.id} />
+                      <input type="hidden" name="checked" value={String(!c.checked)} />
+                      <Button type="submit" variant="secondary" className="min-h-0 px-2 py-1 text-xs">{c.checked ? 'Uncheck' : 'Check'}</Button>
+                    </form>
+                  </div>
+                </li>
+              ))}
+              {!checklist?.length ? <li className="text-slate-500">No checklist items yet.</li> : null}
+            </ul>
+          </Card>
+
+          <Card title="Needs-changes tasks">
+            <ul className="space-y-2 text-xs">
+              {tasks?.map((t) => (
+                <li key={t.id} className="rounded border p-2">
+                  <div className="font-medium">{t.title}</div>
+                  <div className="text-slate-600">Status: {t.status} • Due: {t.due_at ? new Date(t.due_at).toLocaleString() : '-'}</div>
+                  {t.status !== 'done' ? (
+                    <form action={completeTaskAction} className="mt-1">
+                      <input type="hidden" name="permit_id" value={permit.id} />
+                      <input type="hidden" name="task_id" value={t.id} />
+                      <Button type="submit" variant="secondary" className="min-h-0 px-2 py-1 text-xs">Mark done</Button>
+                    </form>
+                  ) : null}
+                </li>
+              ))}
+              {!tasks?.length ? <li className="text-slate-500">No tasks generated.</li> : null}
+            </ul>
+          </Card>
+        </div>
       </div>
     </AppShell>
   );

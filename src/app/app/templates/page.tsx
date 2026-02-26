@@ -6,6 +6,41 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentWorkspace } from '@/lib/workspace/current';
 import { logAuditEvent } from '@/lib/audit/events';
 
+async function snapshotTemplateVersion(
+  workspaceId: string,
+  templateId: string,
+  actorUserId: string,
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>
+) {
+  const { data: template } = await supabase
+    .from('permit_templates')
+    .select('id,name,category,definition')
+    .eq('workspace_id', workspaceId)
+    .eq('id', templateId)
+    .single();
+  if (!template) return;
+
+  const { data: existing } = await supabase
+    .from('template_versions')
+    .select('version_no')
+    .eq('workspace_id', workspaceId)
+    .eq('template_id', templateId)
+    .order('version_no', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const nextVersion = (existing?.version_no ?? 0) + 1;
+  await supabase.from('template_versions').insert({
+    workspace_id: workspaceId,
+    template_id: templateId,
+    version_no: nextVersion,
+    name: template.name,
+    category: template.category,
+    definition: template.definition,
+    created_by: actorUserId
+  });
+}
+
 async function createTemplateAction(formData: FormData) {
   'use server';
   const ctx = await getCurrentWorkspace();
@@ -54,6 +89,7 @@ async function createTemplateAction(formData: FormData) {
       required: true
     }));
     await supabase.from('permit_template_steps').insert(steps);
+    await snapshotTemplateVersion(ctx.workspaceId, template.id, ctx.user.id, supabase);
   }
 
   await logAuditEvent({
@@ -68,6 +104,44 @@ async function createTemplateAction(formData: FormData) {
   revalidatePath('/app/templates');
 }
 
+async function rollbackTemplateAction(formData: FormData) {
+  'use server';
+  const ctx = await getCurrentWorkspace();
+  if (!ctx || !['admin', 'owner'].includes(ctx.role)) return;
+  const templateId = String(formData.get('template_id') ?? '');
+  const versionId = String(formData.get('version_id') ?? '');
+  if (!templateId || !versionId) return;
+
+  const supabase = await createSupabaseServerClient();
+  const { data: v } = await supabase
+    .from('template_versions')
+    .select('id,name,category,definition')
+    .eq('workspace_id', ctx.workspaceId)
+    .eq('template_id', templateId)
+    .eq('id', versionId)
+    .single();
+
+  if (!v) return;
+
+  await supabase
+    .from('permit_templates')
+    .update({ name: v.name, category: v.category, definition: v.definition })
+    .eq('workspace_id', ctx.workspaceId)
+    .eq('id', templateId);
+
+  await snapshotTemplateVersion(ctx.workspaceId, templateId, ctx.user.id, supabase);
+  await logAuditEvent({
+    workspaceId: ctx.workspaceId,
+    actorUserId: ctx.user.id,
+    action: 'template.rollback',
+    objectType: 'permit_template',
+    objectId: templateId,
+    payload: { versionId }
+  });
+
+  revalidatePath('/app/templates');
+}
+
 export default async function TemplatesPage() {
   const ctx = await getCurrentWorkspace();
   const supabase = await createSupabaseServerClient();
@@ -75,7 +149,7 @@ export default async function TemplatesPage() {
   const templates = ctx
     ? (await supabase
         .from('permit_templates')
-        .select('id,name,category,created_at')
+        .select('id,name,category,created_at,template_versions(id,version_no,created_at)')
         .eq('workspace_id', ctx.workspaceId)
         .order('created_at', { ascending: false })).data ?? []
     : [];
@@ -107,12 +181,27 @@ export default async function TemplatesPage() {
         </Card>
         <Card title="Existing templates">
           <ul className="space-y-2 text-sm">
-            {templates.map((t) => (
-              <li key={t.id} className="rounded border p-2">
-                <div className="font-medium">{t.name}</div>
-                <div className="text-slate-600">{t.category}</div>
-              </li>
-            ))}
+            {templates.map((t) => {
+              const versions = ((t.template_versions as Array<{ id: string; version_no: number }> | null) ?? []).sort(
+                (a, b) => b.version_no - a.version_no
+              );
+              return (
+                <li key={t.id} className="rounded border p-2">
+                  <div className="font-medium">{t.name}</div>
+                  <div className="text-slate-600">{t.category}</div>
+                  <div className="mt-1 text-xs text-slate-500">Versions: {versions.map((v) => `v${v.version_no}`).join(', ') || 'none'}</div>
+                  {versions[0] ? (
+                    <form action={rollbackTemplateAction} className="mt-2">
+                      <input type="hidden" name="template_id" value={t.id} />
+                      <input type="hidden" name="version_id" value={versions[0].id} />
+                      <Button type="submit" variant="secondary" className="min-h-0 px-2 py-1 text-xs">
+                        Rollback to latest snapshot
+                      </Button>
+                    </form>
+                  ) : null}
+                </li>
+              );
+            })}
             {templates.length === 0 ? <li className="text-slate-500">No templates yet.</li> : null}
           </ul>
         </Card>

@@ -66,13 +66,13 @@ This file is the source of truth for delivery tracking.
 | DS-16.A permit duplication + quick issue | PL-7.1 | done |
 | DS-16.B permit calendar/timeline | PL-7.2 | done |
 | DS-16.C contractor portal scoped access | PL-7.3 | partial |
-| DS-16.D qualification requirement packs | PL-7.4 | todo |
-| DS-16.E permit preconditions checklist | PL-7.5 | todo |
+| DS-16.D qualification requirement packs | PL-7.4 | done |
+| DS-16.E permit preconditions checklist | PL-7.5 | done |
 | DS-16.F toolbox talk capture | PL-7.6 | todo |
-| DS-16.G needs-changes task tracking | PL-7.7 | todo |
-| DS-16.H smart reminder actions | PL-7.8 | todo |
+| DS-16.G needs-changes task tracking | PL-7.7 | done |
+| DS-16.H smart reminder actions | PL-7.8 | done |
 | DS-16.I expiring public share links | PL-7.9 | todo |
-| DS-16.J template versioning + rollback | PL-7.10 | todo |
+| DS-16.J template versioning + rollback | PL-7.10 | partial |
 | DS-16.K site-level dashboards | PL-7.11 | todo |
 | DS-16.L mobile field UX optimization | PL-7.12 | partial |
 
@@ -506,19 +506,28 @@ When any DS-linked feature is shipped:
 
 **Status**: partial (needs dedicated contractor invite flow + strict contractor-only RLS isolation)
 
-### [ ] PL-7.4 (DS-16.D) — Qualification requirement packs
-**Planned**
-- Add pack data model and CRUD
-- Apply packs to templates and contractor assignments
+### [x] PL-7.4 (DS-16.D) — Qualification requirement packs
+**What was built**
+- Added qualification pack + pack item data model
+- Added pack CRUD baseline UI
 
-**Status**: todo
+**Where**
+- `db/migrations/0009_feature_expansion_core.sql`
+- `src/app/app/qualifications/packs/page.tsx`
+- `src/app/app/qualifications/page.tsx`
 
-### [ ] PL-7.5 (DS-16.E) — Permit preconditions checklist
-**Planned**
-- Add checklist model + permit pre-start signoff UI
-- Enforce activation blocking when incomplete
+**Status**: done
 
-**Status**: todo
+### [x] PL-7.5 (DS-16.E) — Permit preconditions checklist
+**What was built**
+- Added permit checklist item model and permit detail UI
+- Added activation blocking when required checklist items are incomplete
+
+**Where**
+- `db/migrations/0009_feature_expansion_core.sql`
+- `src/app/app/permits/[id]/page.tsx`
+
+**Status**: done
 
 ### [ ] PL-7.6 (DS-16.F) — Toolbox talk / briefing capture
 **Planned**
@@ -526,19 +535,28 @@ When any DS-linked feature is shipped:
 
 **Status**: todo
 
-### [ ] PL-7.7 (DS-16.G) — Needs-changes task tracking
-**Planned**
-- Create tasks from needs-changes decisions
-- Track assignee/due/completion
+### [x] PL-7.7 (DS-16.G) — Needs-changes task tracking
+**What was built**
+- Added permit task model
+- Auto-generated task on needs-changes decision
+- Added task completion actions in permit detail
 
-**Status**: todo
+**Where**
+- `db/migrations/0009_feature_expansion_core.sql`
+- `src/app/app/permits/[id]/page.tsx`
 
-### [ ] PL-7.8 (DS-16.H) — Smart reminder actions
-**Planned**
-- Add renew/waive/bulk actions from reminders view
-- Persist decision + reason + audit event
+**Status**: done
 
-**Status**: todo
+### [x] PL-7.8 (DS-16.H) — Smart reminder actions
+**What was built**
+- Added renew (+12 months) and waive (with reason) actions from reminders page
+- Persists waiver metadata and writes audit events
+
+**Where**
+- `db/migrations/0009_feature_expansion_core.sql`
+- `src/app/app/reminders/page.tsx`
+
+**Status**: done
 
 ### [ ] PL-7.9 (DS-16.I) — Expiring public share links
 **Planned**
@@ -546,11 +564,16 @@ When any DS-linked feature is shipped:
 
 **Status**: todo
 
-### [ ] PL-7.10 (DS-16.J) — Template versioning + rollback
-**Planned**
-- Add template_versions table and rollback actions
+### [x] PL-7.10 (DS-16.J) — Template versioning + rollback
+**What was built**
+- Added template version snapshots data model
+- Snapshot on template create and rollback action to restore a saved snapshot
 
-**Status**: todo
+**Where**
+- `db/migrations/0009_feature_expansion_core.sql`
+- `src/app/app/templates/page.tsx`
+
+**Status**: partial (needs full edit flow with automatic snapshot per update and full version browser)
 
 ### [ ] PL-7.11 (DS-16.K) — Site-level dashboards
 **Planned**

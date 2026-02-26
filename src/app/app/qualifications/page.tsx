@@ -12,7 +12,10 @@ export default function QualificationsPage() {
         </Card>
         <Card title="Contractor qualification records">
           <p className="mb-3 text-sm text-slate-600">Issue/expiry dates, verification status, and evidence links.</p>
-          <Link href="/app/qualifications/records" className="rounded-md bg-blue-700 px-4 py-2 text-sm text-white">Open records</Link>
+          <div className="flex gap-2">
+            <Link href="/app/qualifications/records" className="rounded-md bg-blue-700 px-4 py-2 text-sm text-white">Open records</Link>
+            <Link href="/app/qualifications/packs" className="rounded-md border px-4 py-2 text-sm">Requirement packs</Link>
+          </div>
         </Card>
       </div>
     </AppShell>
