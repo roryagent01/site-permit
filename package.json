@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "loadtest:permit": "k6 run loadtests/permit-actions.js",
+    "loadtest:reminders": "k6 run loadtests/reminder-digest.js",
+    "loadtest:training": "k6 run loadtests/training-invites.js",
+    "loadtest:all": "npm run loadtest:permit && npm run loadtest:reminders && npm run loadtest:training"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
@@ -24,6 +28,7 @@
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
     "autoprefixer": "^10.4.20",
+    "k6": "^0.0.0",
     "postcss": "^8.5.1",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.3",

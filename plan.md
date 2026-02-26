@@ -61,7 +61,7 @@ This file is the source of truth for delivery tracking.
 | DS-15.C observability/alerting | PL-6.3 | done |
 | DS-15.D data lifecycle/governance | PL-6.4 | done |
 | DS-15.E delivery/change management | PL-6.5 | partial |
-| DS-15.F performance/scale validation | PL-6.6 | partial |
+| DS-15.F performance/scale validation | PL-6.6 | done |
 | DS-15.G enterprise readiness track | PL-6.7 | done |
 | DS-16.A permit duplication + quick issue | PL-7.1 | done |
 | DS-16.B permit calendar/timeline | PL-7.2 | done |
@@ -500,11 +500,16 @@ When any DS-linked feature is shipped:
 **What was built**
 - Added performance/scale validation plan with SLO targets and review cadence
 - Added explicit load-test targets for critical APIs/jobs
+- Added k6 load-test scripts and npm runners for permit, reminder, and training flows
 
 **Where**
 - `docs/production/performance-scale.md`
+- `loadtests/permit-actions.js`
+- `loadtests/reminder-digest.js`
+- `loadtests/training-invites.js`
+- `package.json`
 
-**Status**: partial (load test execution scripts not yet implemented in repo)
+**Status**: done
 
 ### [x] PL-6.7 (DS-15.G) — Enterprise readiness track
 **What was built**
