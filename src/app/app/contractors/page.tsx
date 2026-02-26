@@ -52,20 +52,29 @@ async function createContractorAction(formData: FormData) {
 export default async function ContractorsPage({
   searchParams
 }: {
-  searchParams: Promise<{ q?: string; error?: string }>;
+  searchParams: Promise<{ q?: string; error?: string; status?: string; page?: string }>;
 }) {
   const ctx = await getCurrentWorkspace();
   const supabase = await createSupabaseServerClient();
-  const { q, error } = await searchParams;
+  const { q, error, status, page } = await searchParams;
+
+  const pageSize = 25;
+  const pageNum = Math.max(1, Number(page || 1));
+  const from = (pageNum - 1) * pageSize;
+  const to = from + pageSize - 1;
 
   let query = supabase
     .from('contractors')
-    .select('id,name,contact_email,status,created_at')
+    .select('id,name,contact_email,status,created_at', { count: 'exact' })
     .eq('workspace_id', ctx?.workspaceId ?? '');
 
   if (q) query = query.ilike('name', `%${q}%`);
+  if (status) query = query.eq('status', status);
 
-  const contractors = ctx ? (await query.order('created_at', { ascending: false })).data ?? [] : [];
+  const contractorsResp = ctx ? await query.order('created_at', { ascending: false }).range(from, to) : null;
+  const contractors = contractorsResp?.data ?? [];
+  const total = contractorsResp?.count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
     <AppShell title="Contractors">
@@ -83,8 +92,14 @@ export default async function ContractorsPage({
           </form>
         </Card>
         <Card title="Contractor list">
-          <form className="mb-3">
+          <form className="mb-3 grid gap-2 md:grid-cols-3">
             <input name="q" defaultValue={q} placeholder="Search contractor" className="w-full rounded-md border px-3 py-2" />
+            <select name="status" defaultValue={status ?? ''} className="rounded-md border px-3 py-2 text-sm">
+              <option value="">All statuses</option>
+              <option value="active">active</option>
+              <option value="inactive">inactive</option>
+            </select>
+            <button type="submit" className="rounded border px-3 py-2 text-sm">Apply filters</button>
           </form>
           <ul className="space-y-2 text-sm">
             {contractors.map((c) => (
@@ -95,6 +110,28 @@ export default async function ContractorsPage({
             ))}
             {contractors.length === 0 ? <li className="text-slate-500">No contractors found.</li> : null}
           </ul>
+
+          <div className="mt-3 flex items-center justify-between text-xs text-slate-600">
+            <span>Page {pageNum} of {totalPages} • {total} total</span>
+            <div className="flex gap-2">
+              {pageNum > 1 ? (
+                <a
+                  href={`/app/contractors?${new URLSearchParams({ ...(q ? { q } : {}), ...(status ? { status } : {}), page: String(pageNum - 1) }).toString()}`}
+                  className="rounded border px-2 py-1"
+                >
+                  Prev
+                </a>
+              ) : null}
+              {pageNum < totalPages ? (
+                <a
+                  href={`/app/contractors?${new URLSearchParams({ ...(q ? { q } : {}), ...(status ? { status } : {}), page: String(pageNum + 1) }).toString()}`}
+                  className="rounded border px-2 py-1"
+                >
+                  Next
+                </a>
+              ) : null}
+            </div>
+          </div>
         </Card>
       </div>
     </AppShell>

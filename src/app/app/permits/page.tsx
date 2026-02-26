@@ -38,17 +38,32 @@ async function duplicatePermitAction(formData: FormData) {
   revalidatePath('/app/permits');
 }
 
-export default async function PermitsPage() {
+export default async function PermitsPage({
+  searchParams
+}: {
+  searchParams: Promise<{ status?: string; q?: string; page?: string }>;
+}) {
   const ctx = await getCurrentWorkspace();
   const supabase = await createSupabaseServerClient();
+  const { status, q, page } = await searchParams;
 
-  const permits = ctx
-    ? (await supabase
-        .from('permits')
-        .select('id,title,status,start_at,end_at,created_at')
-        .eq('workspace_id', ctx.workspaceId)
-        .order('created_at', { ascending: false })).data ?? []
-    : [];
+  const pageSize = 25;
+  const pageNum = Math.max(1, Number(page || 1));
+  const from = (pageNum - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  let permitsQuery = supabase
+    .from('permits')
+    .select('id,title,status,start_at,end_at,created_at', { count: 'exact' })
+    .eq('workspace_id', ctx?.workspaceId ?? '');
+
+  if (status) permitsQuery = permitsQuery.eq('status', status);
+  if (q) permitsQuery = permitsQuery.ilike('title', `%${q}%`);
+
+  const permitsResp = ctx ? await permitsQuery.order('created_at', { ascending: false }).range(from, to) : null;
+  const permits = permitsResp?.data ?? [];
+  const total = permitsResp?.count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
     <AppShell title="Permits">
@@ -64,6 +79,22 @@ export default async function PermitsPage() {
             </Link>
           </div>
         </div>
+
+        <form className="mb-3 grid gap-2 md:grid-cols-3">
+          <input name="q" defaultValue={q} placeholder="Search title" className="rounded border px-3 py-2 text-sm" />
+          <select name="status" defaultValue={status ?? ''} className="rounded border px-3 py-2 text-sm">
+            <option value="">All statuses</option>
+            <option value="draft">draft</option>
+            <option value="submitted">submitted</option>
+            <option value="needs_changes">needs_changes</option>
+            <option value="approved">approved</option>
+            <option value="active">active</option>
+            <option value="closed">closed</option>
+            <option value="cancelled">cancelled</option>
+            <option value="expired">expired</option>
+          </select>
+          <button type="submit" className="rounded border px-3 py-2 text-sm">Apply filters</button>
+        </form>
         <ul className="space-y-2 text-sm">
           {permits.map((p) => (
             <li key={p.id} className="rounded border p-2">
@@ -83,8 +114,20 @@ export default async function PermitsPage() {
               </div>
             </li>
           ))}
-          {permits.length === 0 ? <li className="text-slate-500">No permits created yet.</li> : null}
+          {permits.length === 0 ? <li className="text-slate-500">No permits found for current filters.</li> : null}
         </ul>
+
+        <div className="mt-3 flex items-center justify-between text-xs text-slate-600">
+          <span>Page {pageNum} of {totalPages} • {total} total</span>
+          <div className="flex gap-2">
+            {pageNum > 1 ? (
+              <Link href={`/app/permits?${new URLSearchParams({ ...(q ? { q } : {}), ...(status ? { status } : {}), page: String(pageNum - 1) }).toString()}`} className="rounded border px-2 py-1">Prev</Link>
+            ) : null}
+            {pageNum < totalPages ? (
+              <Link href={`/app/permits?${new URLSearchParams({ ...(q ? { q } : {}), ...(status ? { status } : {}), page: String(pageNum + 1) }).toString()}`} className="rounded border px-2 py-1">Next</Link>
+            ) : null}
+          </div>
+        </div>
       </Card>
     </AppShell>
   );

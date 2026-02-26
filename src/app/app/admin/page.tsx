@@ -173,13 +173,26 @@ async function revokeContractorPortalInviteAction(formData: FormData) {
 export default async function AdminPage({
   searchParams
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; auditPage?: string; auditQ?: string; auditAction?: string; auditObject?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, auditPage, auditQ, auditAction, auditObject } = await searchParams;
   const ctx = await getCurrentWorkspace();
   const supabase = await createSupabaseServerClient();
 
-  const [members, audits, employeeInvites, contractorInvites, contractorPortalInvites, sites, contractors] = await Promise.all([
+  const auditPageSize = 30;
+  const auditPageNum = Math.max(1, Number(auditPage || 1));
+  const auditFrom = (auditPageNum - 1) * auditPageSize;
+  const auditTo = auditFrom + auditPageSize - 1;
+
+  let auditsQuery = supabase
+    .from('audit_events')
+    .select('id,action,object_type,created_at,payload', { count: 'exact' })
+    .eq('workspace_id', ctx?.workspaceId ?? '');
+  if (auditAction) auditsQuery = auditsQuery.eq('action', auditAction);
+  if (auditObject) auditsQuery = auditsQuery.eq('object_type', auditObject);
+  if (auditQ) auditsQuery = auditsQuery.ilike('action', `%${auditQ}%`);
+
+  const [members, auditsResp, employeeInvites, contractorInvites, contractorPortalInvites, sites, contractors] = await Promise.all([
     ctx
       ? (await supabase
           .from('workspace_members')
@@ -187,14 +200,7 @@ export default async function AdminPage({
           .eq('workspace_id', ctx.workspaceId)
           .order('created_at', { ascending: true })).data ?? []
       : [],
-    ctx
-      ? (await supabase
-          .from('audit_events')
-          .select('id,action,object_type,created_at')
-          .eq('workspace_id', ctx.workspaceId)
-          .order('created_at', { ascending: false })
-          .limit(50)).data ?? []
-      : [],
+    ctx ? await auditsQuery.order('created_at', { ascending: false }).range(auditFrom, auditTo) : null,
     ctx
       ? (await supabase
           .from('employee_invites')
@@ -222,6 +228,10 @@ export default async function AdminPage({
     ctx ? (await supabase.from('sites').select('id,name').eq('workspace_id', ctx.workspaceId).order('name')).data ?? [] : [],
     ctx ? (await supabase.from('contractors').select('id,name').eq('workspace_id', ctx.workspaceId).order('name')).data ?? [] : []
   ]);
+
+  const audits = auditsResp?.data ?? [];
+  const auditsTotal = auditsResp?.count ?? 0;
+  const auditsTotalPages = Math.max(1, Math.ceil(auditsTotal / auditPageSize));
 
   return (
     <AppShell title="Admin">
@@ -341,14 +351,46 @@ export default async function AdminPage({
         </Card>
 
         <Card title="Audit events">
+          <form className="mb-3 grid gap-2 md:grid-cols-4">
+            <input name="auditQ" defaultValue={auditQ} placeholder="Search action" className="rounded border px-2 py-1 text-xs" />
+            <input name="auditAction" defaultValue={auditAction} placeholder="Exact action" className="rounded border px-2 py-1 text-xs" />
+            <input name="auditObject" defaultValue={auditObject} placeholder="Exact object type" className="rounded border px-2 py-1 text-xs" />
+            <button type="submit" className="rounded border px-2 py-1 text-xs">Apply</button>
+          </form>
           <ul className="space-y-2 text-sm">
             {audits.map((a) => (
               <li key={a.id} className="rounded border p-2">
                 <div className="font-medium">{a.action}</div>
                 <div className="text-slate-600">{a.object_type} • {new Date(a.created_at).toLocaleString()}</div>
+                <details className="mt-1 text-xs text-slate-500">
+                  <summary>Payload</summary>
+                  <pre className="mt-1 overflow-auto rounded bg-slate-50 p-2">{JSON.stringify(a.payload ?? {}, null, 2)}</pre>
+                </details>
               </li>
             ))}
+            {!audits.length ? <li className="text-slate-500">No audit events found for filters.</li> : null}
           </ul>
+          <div className="mt-3 flex items-center justify-between text-xs text-slate-600">
+            <span>Page {auditPageNum} of {auditsTotalPages} • {auditsTotal} total</span>
+            <div className="flex gap-2">
+              {auditPageNum > 1 ? (
+                <a
+                  href={`/app/admin?${new URLSearchParams({ ...(error ? { error } : {}), ...(auditQ ? { auditQ } : {}), ...(auditAction ? { auditAction } : {}), ...(auditObject ? { auditObject } : {}), auditPage: String(auditPageNum - 1) }).toString()}`}
+                  className="rounded border px-2 py-1"
+                >
+                  Prev
+                </a>
+              ) : null}
+              {auditPageNum < auditsTotalPages ? (
+                <a
+                  href={`/app/admin?${new URLSearchParams({ ...(error ? { error } : {}), ...(auditQ ? { auditQ } : {}), ...(auditAction ? { auditAction } : {}), ...(auditObject ? { auditObject } : {}), auditPage: String(auditPageNum + 1) }).toString()}`}
+                  className="rounded border px-2 py-1"
+                >
+                  Next
+                </a>
+              ) : null}
+            </div>
+          </div>
         </Card>
       </div>
     </AppShell>

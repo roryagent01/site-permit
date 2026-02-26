@@ -96,12 +96,12 @@ This file is the source of truth for delivery tracking.
 | DS-21.B structured metadata | PL-12.2 | done |
 | DS-21.C agent discoverability docs | PL-12.3 | done |
 | DS-22.A native OCR processing from uploaded files | PL-13.1 | todo |
-| DS-22.B audit log UX completeness | PL-13.2 | partial |
+| DS-22.B audit log UX completeness | PL-13.2 | done |
 | DS-22.C self-serve billing automation | PL-13.3 | todo |
 | DS-22.D offline tolerance (PWA-lite) | PL-13.4 | todo |
 | DS-22.E malware scanning for uploads | PL-13.5 | todo |
 | DS-22.F regional date formatting and i18n baseline | PL-13.6 | todo |
-| DS-22.G high-volume pagination/filtering hardening | PL-13.7 | partial |
+| DS-22.G high-volume pagination/filtering hardening | PL-13.7 | done |
 
 ---
 
@@ -955,12 +955,14 @@ When any DS-linked feature is shipped:
 
 ### [x] PL-13.2 (DS-22.B) — Audit log UX completeness
 **What was built**
-- Admin page includes audit event listing for workspace context
+- Added audit log table UX in Admin with search/action/object filters
+- Added server-side pagination for audit events
+- Added payload drill-down view per audit event
 
 **Where**
 - `src/app/app/admin/page.tsx`
 
-**Status**: partial (needs dedicated filters/pagination/search and richer event payload drill-down)
+**Status**: done
 
 ### [ ] PL-13.3 (DS-22.C) — Self-serve billing automation (Stripe)
 **Planned**
@@ -992,11 +994,13 @@ When any DS-linked feature is shipped:
 
 ### [x] PL-13.7 (DS-22.G) — Pagination/filtering hardening
 **What was built**
-- Baseline filtering exists in permits/reminders/contractors flows
+- Implemented server-side pagination + filtering in permits list
+- Implemented server-side pagination + filtering in contractors list
+- Implemented paginated/filterable admin audit list for high-volume events
 
 **Where**
-- `src/app/app/permits/calendar/page.tsx`
+- `src/app/app/permits/page.tsx`
 - `src/app/app/contractors/page.tsx`
-- `src/app/app/reminders/page.tsx`
+- `src/app/app/admin/page.tsx`
 
-**Status**: partial (needs consistent server-side pagination and advanced filters on all high-volume lists)
+**Status**: done
