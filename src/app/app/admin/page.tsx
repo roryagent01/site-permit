@@ -42,6 +42,55 @@ async function addMemberAction(formData: FormData) {
   revalidatePath('/app/admin');
 }
 
+async function createEmployeeInviteAction(formData: FormData) {
+  'use server';
+  const ctx = await getCurrentWorkspace();
+  if (!ctx || !['owner', 'admin'].includes(ctx.role)) return;
+
+  const email = String(formData.get('email') ?? '').trim().toLowerCase();
+  const role = String(formData.get('role') ?? 'viewer');
+  const hours = Number(formData.get('hours') || 168);
+  if (!email) return;
+
+  const supabase = await createSupabaseServerClient();
+  const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+  const expiresAt = new Date(Date.now() + Math.max(1, Math.min(720, hours)) * 3600 * 1000).toISOString();
+
+  await supabase.from('employee_invites').insert({
+    workspace_id: ctx.workspaceId,
+    email,
+    role,
+    token,
+    expires_at: expiresAt,
+    created_by: ctx.user.id
+  });
+
+  revalidatePath('/app/admin');
+}
+
+async function createContractorInviteAction(formData: FormData) {
+  'use server';
+  const ctx = await getCurrentWorkspace();
+  if (!ctx || !['owner', 'admin', 'issuer'].includes(ctx.role)) return;
+
+  const siteId = String(formData.get('site_id') ?? '').trim() || null;
+  const hours = Number(formData.get('hours') || 168);
+
+  const supabase = await createSupabaseServerClient();
+  const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+  const expiresAt = new Date(Date.now() + Math.max(1, Math.min(720, hours)) * 3600 * 1000).toISOString();
+
+  await supabase.from('contractor_invites').insert({
+    workspace_id: ctx.workspaceId,
+    site_id: siteId,
+    token,
+    expires_at: expiresAt,
+    created_by: ctx.user.id
+  });
+
+  revalidatePath('/app/admin');
+}
+
 export default async function AdminPage({
   searchParams
 }: {
@@ -51,7 +100,7 @@ export default async function AdminPage({
   const ctx = await getCurrentWorkspace();
   const supabase = await createSupabaseServerClient();
 
-  const [members, audits] = await Promise.all([
+  const [members, audits, employeeInvites, contractorInvites, sites] = await Promise.all([
     ctx
       ? (await supabase
           .from('workspace_members')
@@ -66,7 +115,24 @@ export default async function AdminPage({
           .eq('workspace_id', ctx.workspaceId)
           .order('created_at', { ascending: false })
           .limit(50)).data ?? []
-      : []
+      : [],
+    ctx
+      ? (await supabase
+          .from('employee_invites')
+          .select('id,email,role,token,expires_at,accepted_at,revoked_at')
+          .eq('workspace_id', ctx.workspaceId)
+          .order('created_at', { ascending: false })
+          .limit(30)).data ?? []
+      : [],
+    ctx
+      ? (await supabase
+          .from('contractor_invites')
+          .select('id,token,site_id,expires_at,accepted_at,revoked_at')
+          .eq('workspace_id', ctx.workspaceId)
+          .order('created_at', { ascending: false })
+          .limit(30)).data ?? []
+      : [],
+    ctx ? (await supabase.from('sites').select('id,name').eq('workspace_id', ctx.workspaceId).order('name')).data ?? [] : []
   ]);
 
   return (
@@ -78,7 +144,7 @@ export default async function AdminPage({
         <p className="mb-3 rounded-md bg-red-50 p-3 text-sm text-red-700">Only owner/admin can add members.</p>
       ) : null}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card title="Workspace members">
+        <Card title="Workspace members (internal employees)">
           <form action={addMemberAction} className="mb-3 grid gap-2">
             <input name="user_id" placeholder="Supabase user UUID" className="rounded border px-3 py-2 text-sm" />
             <select name="role" className="rounded border px-3 py-2 text-sm">
@@ -98,6 +164,53 @@ export default async function AdminPage({
             ))}
           </ul>
         </Card>
+
+        <Card title="Employee onboarding links">
+          <form action={createEmployeeInviteAction} className="mb-3 grid gap-2">
+            <input name="email" type="email" placeholder="employee@company.com" className="rounded border px-3 py-2 text-sm" />
+            <select name="role" className="rounded border px-3 py-2 text-sm">
+              <option value="viewer">viewer</option>
+              <option value="issuer">issuer</option>
+              <option value="approver">approver</option>
+              <option value="admin">admin</option>
+            </select>
+            <input name="hours" type="number" defaultValue={168} min={1} max={720} className="rounded border px-3 py-2 text-sm" />
+            <Button type="submit">Create employee invite</Button>
+          </form>
+          <ul className="space-y-2 text-xs">
+            {employeeInvites.map((i) => (
+              <li key={i.id} className="rounded border p-2">
+                <div className="font-medium">{i.email} • {i.role}</div>
+                <div className="text-slate-600 break-all">{`${process.env.APP_BASE_URL ?? ''}/api/public/onboarding/employee/${i.token}`}</div>
+                <div className="text-slate-500">Expires: {new Date(i.expires_at).toLocaleString()} {i.accepted_at ? '• accepted' : ''}</div>
+              </li>
+            ))}
+            {!employeeInvites.length ? <li className="text-slate-500">No employee invites yet.</li> : null}
+          </ul>
+        </Card>
+
+        <Card title="Contractor self-onboarding links">
+          <form action={createContractorInviteAction} className="mb-3 grid gap-2">
+            <select name="site_id" className="rounded border px-3 py-2 text-sm">
+              <option value="">No specific site</option>
+              {sites.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+            <input name="hours" type="number" defaultValue={168} min={1} max={720} className="rounded border px-3 py-2 text-sm" />
+            <Button type="submit">Create contractor invite</Button>
+          </form>
+          <ul className="space-y-2 text-xs">
+            {contractorInvites.map((i) => (
+              <li key={i.id} className="rounded border p-2">
+                <div className="text-slate-600 break-all">{`${process.env.APP_BASE_URL ?? ''}/api/public/onboarding/contractor/${i.token}`}</div>
+                <div className="text-slate-500">Expires: {new Date(i.expires_at).toLocaleString()} {i.accepted_at ? '• accepted' : ''}</div>
+              </li>
+            ))}
+            {!contractorInvites.length ? <li className="text-slate-500">No contractor invites yet.</li> : null}
+          </ul>
+        </Card>
+
         <Card title="Audit events">
           <ul className="space-y-2 text-sm">
             {audits.map((a) => (

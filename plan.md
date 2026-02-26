@@ -79,6 +79,10 @@ This file is the source of truth for delivery tracking.
 | DS-17.B machine-usable contracts | PL-8.2 | done |
 | DS-17.C API security parity | PL-8.3 | done |
 | DS-17.D agent integration documentation | PL-8.4 | done |
+| DS-18.A internal employee onboarding invite links | PL-9.1 | done |
+| DS-18.B contractor self-onboarding invite links | PL-9.2 | done |
+| DS-18.C invite security and lifecycle | PL-9.3 | partial |
+| DS-18.D agent-operable onboarding APIs | PL-9.4 | done |
 
 ---
 
@@ -661,5 +665,60 @@ When any DS-linked feature is shipped:
 
 **Where**
 - `docs/agent-api.md`
+
+**Status**: done
+
+---
+
+## Phase 9 Workforce Onboarding (DS-18)
+
+### [x] PL-9.1 (DS-18.A) — Internal employee onboarding invites
+**What was built**
+- Employee invite data model with role/email/expiry/token state
+- Admin UI to generate and view internal employee onboarding links
+- Public accept API requiring logged-in matching email
+
+**Where**
+- `db/migrations/0011_onboarding_invites.sql`
+- `src/app/app/admin/page.tsx`
+- `src/app/api/public/onboarding/employee/[token]/route.ts`
+
+**Status**: done
+
+### [x] PL-9.2 (DS-18.B) — Contractor self-onboarding invites
+**What was built**
+- Contractor invite data model with token/expiry/revocation/acceptance
+- Admin UI to generate contractor invite links
+- Public acceptance API to self-register contractor records
+
+**Where**
+- `db/migrations/0011_onboarding_invites.sql`
+- `src/app/app/admin/page.tsx`
+- `src/app/api/public/onboarding/contractor/[token]/route.ts`
+
+**Status**: done
+
+### [x] PL-9.3 (DS-18.C) — Invite security + lifecycle
+**What was built**
+- Invite expiry, revocation, one-time acceptance semantics in APIs
+- Validation checks for not_found/revoked/expired/used states
+
+**Where**
+- `src/app/api/public/onboarding/employee/[token]/route.ts`
+- `src/app/api/public/onboarding/contractor/[token]/route.ts`
+- `src/app/api/app/onboarding/{employee-invites,contractor-invites}/route.ts`
+
+**Status**: partial (dedicated revoke UI actions and invite email delivery still to add)
+
+### [x] PL-9.4 (DS-18.D) — Agent-operable onboarding APIs
+**What was built**
+- Agent API endpoints for invite list/create/revoke workflows
+- Public accept endpoints for tokenized onboarding completion
+
+**Where**
+- `src/app/api/app/onboarding/employee-invites/route.ts`
+- `src/app/api/app/onboarding/contractor-invites/route.ts`
+- `src/app/api/public/onboarding/employee/[token]/route.ts`
+- `src/app/api/public/onboarding/contractor/[token]/route.ts`
 
 **Status**: done

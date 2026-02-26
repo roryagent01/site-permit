@@ -610,3 +610,23 @@ A workspace can:
 
 ### DS-17.D Agent integration documentation
 - For each major capability, document endpoint, roles, payload schema, and failure behavior.
+
+---
+
+## DS-18 Workforce Onboarding (Internal + Contractors)
+
+### DS-18.A Internal employee onboarding via invite link
+- Workspace owners/admins can generate invite links for internal employees.
+- Invite acceptance flow creates workspace membership with predefined role.
+
+### DS-18.B Contractor self-onboarding via invite link
+- Workspace owners/admins can generate contractor onboarding links.
+- Contractor can submit company/contact details and self-register into workspace contractor records.
+
+### DS-18.C Invite security + lifecycle
+- Invite links must be tokenized and time-bound.
+- Invite links support revocation and one-time use semantics.
+- Invite acceptance events must be auditable.
+
+### DS-18.D Agent-operable onboarding APIs
+- Invite creation/list/revoke/accept flows must be API-accessible for AI agent automation.
