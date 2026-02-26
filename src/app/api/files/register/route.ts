@@ -40,6 +40,15 @@ export async function POST(request: Request) {
 
   if (error) return NextResponse.json({ error: 'register_failed' }, { status: 500 });
 
+  if (data?.id) {
+    await supabase.from('file_scan_results').upsert({
+      workspace_id: ctx.workspaceId,
+      file_id: data.id,
+      status: 'pending',
+      engine: 'baseline-rules'
+    }, { onConflict: 'file_id' });
+  }
+
   await logAuditEvent({
     workspaceId: ctx.workspaceId,
     actorUserId: ctx.user.id,

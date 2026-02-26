@@ -1,5 +1,6 @@
 import './globals.css';
 import type { ReactNode } from 'react';
+import { RegisterServiceWorker } from '@/components/pwa/register-sw';
 
 export const metadata = {
   metadataBase: new URL(process.env.APP_BASE_URL ?? 'https://example.com'),
@@ -24,7 +25,10 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <RegisterServiceWorker />
+        {children}
+      </body>
     </html>
   );
 }

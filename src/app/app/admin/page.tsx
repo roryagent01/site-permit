@@ -8,6 +8,7 @@ import { getCurrentWorkspace } from '@/lib/workspace/current';
 import { assertMembersWithinLimit } from '@/lib/limits';
 import { upsertUsageCounter } from '@/lib/usage/counters';
 import { logAuditEvent } from '@/lib/audit/events';
+import { formatDateValue } from '@/lib/i18n/date';
 
 async function addMemberAction(formData: FormData) {
   'use server';
@@ -192,7 +193,14 @@ export default async function AdminPage({
   if (auditObject) auditsQuery = auditsQuery.eq('object_type', auditObject);
   if (auditQ) auditsQuery = auditsQuery.ilike('action', `%${auditQ}%`);
 
-  const [members, auditsResp, employeeInvites, contractorInvites, contractorPortalInvites, sites, contractors] = await Promise.all([
+  const [workspacePrefs, members, auditsResp, employeeInvites, contractorInvites, contractorPortalInvites, sites, contractors] = await Promise.all([
+    ctx
+      ? (await supabase
+          .from('workspaces')
+          .select('locale,date_format')
+          .eq('id', ctx.workspaceId)
+          .maybeSingle()).data
+      : null,
     ctx
       ? (await supabase
           .from('workspace_members')
@@ -232,6 +240,8 @@ export default async function AdminPage({
   const audits = auditsResp?.data ?? [];
   const auditsTotal = auditsResp?.count ?? 0;
   const auditsTotalPages = Math.max(1, Math.ceil(auditsTotal / auditPageSize));
+  const locale = (workspacePrefs?.locale as string | undefined) ?? 'en-IE';
+  const dateFormat = (workspacePrefs?.date_format as 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD' | undefined) ?? 'DD/MM/YYYY';
 
   return (
     <AppShell title="Admin">
@@ -337,7 +347,7 @@ export default async function AdminPage({
               <li key={i.id} className="rounded border p-2">
                 <div className="font-medium">{(i.contractors as { name?: string } | null)?.name ?? i.contractor_id}</div>
                 <div className="text-slate-600 break-all">{`${process.env.APP_BASE_URL ?? ''}/contractor/portal/${i.token}`}</div>
-                <div className="text-slate-500">Expires: {new Date(i.expires_at).toLocaleString()} {i.revoked_at ? '• revoked' : ''}</div>
+                <div className="text-slate-500">Expires: {formatDateValue(i.expires_at, { locale, dateFormat })} {i.revoked_at ? '• revoked' : ''}</div>
                 {!i.revoked_at ? (
                   <form action={revokeContractorPortalInviteAction} className="mt-1">
                     <input type="hidden" name="invite_id" value={i.id} />
@@ -361,7 +371,7 @@ export default async function AdminPage({
             {audits.map((a) => (
               <li key={a.id} className="rounded border p-2">
                 <div className="font-medium">{a.action}</div>
-                <div className="text-slate-600">{a.object_type} • {new Date(a.created_at).toLocaleString()}</div>
+                <div className="text-slate-600">{a.object_type} • {formatDateValue(a.created_at, { locale, dateFormat })}</div>
                 <details className="mt-1 text-xs text-slate-500">
                   <summary>Payload</summary>
                   <pre className="mt-1 overflow-auto rounded bg-slate-50 p-2">{JSON.stringify(a.payload ?? {}, null, 2)}</pre>

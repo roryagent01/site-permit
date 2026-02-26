@@ -97,10 +97,10 @@ This file is the source of truth for delivery tracking.
 | DS-21.C agent discoverability docs | PL-12.3 | done |
 | DS-22.A native OCR processing from uploaded files | PL-13.1 | todo |
 | DS-22.B audit log UX completeness | PL-13.2 | done |
-| DS-22.C self-serve billing automation | PL-13.3 | todo |
-| DS-22.D offline tolerance (PWA-lite) | PL-13.4 | todo |
-| DS-22.E malware scanning for uploads | PL-13.5 | todo |
-| DS-22.F regional date formatting and i18n baseline | PL-13.6 | todo |
+| DS-22.C self-serve billing automation | PL-13.3 | partial |
+| DS-22.D offline tolerance (PWA-lite) | PL-13.4 | partial |
+| DS-22.E malware scanning for uploads | PL-13.5 | partial |
+| DS-22.F regional date formatting and i18n baseline | PL-13.6 | partial |
 | DS-22.G high-volume pagination/filtering hardening | PL-13.7 | done |
 
 ---
@@ -964,33 +964,67 @@ When any DS-linked feature is shipped:
 
 **Status**: done
 
-### [ ] PL-13.3 (DS-22.C) — Self-serve billing automation (Stripe)
-**Planned**
-- Add Stripe checkout/portal integration for plans and subscription lifecycle
-- Replace manual billing dependency for SMB self-serve flow
+### [x] PL-13.3 (DS-22.C) — Self-serve billing automation (Stripe)
+**What was built**
+- Added Stripe checkout session endpoint for plan selection
+- Added Stripe billing portal endpoint for subscription management
+- Added settings UI controls to launch checkout and billing portal
+- Added Stripe webhook endpoint and event persistence for subscription state sync
 
-**Status**: todo
+**Where**
+- `src/app/api/billing/stripe/checkout/route.ts`
+- `src/app/api/billing/stripe/portal/route.ts`
+- `src/app/api/billing/stripe/webhook/route.ts`
+- `src/lib/billing/stripe.ts`
+- `db/migrations/0017_billing_webhook_events.sql`
+- `src/app/app/settings/{page.tsx,billing-controls.tsx}`
+- `.env.example` (Stripe keys)
 
-### [ ] PL-13.4 (DS-22.D) — Offline tolerance (PWA-lite)
-**Planned**
-- Add service worker and local queue for permit draft/submit when offline
-- Add retry/reconciliation UX when connectivity is restored
+**Status**: partial (full dunning workflow automation/reporting dashboard still pending)
 
-**Status**: todo
+### [x] PL-13.4 (DS-22.D) — Offline tolerance (PWA-lite)
+**What was built**
+- Added service worker registration and offline cache baseline
+- Added offline draft save/restore helper for permit creation flow
+- Added local offline submission queue with online replay to permit create API
 
-### [ ] PL-13.5 (DS-22.E) — Malware scanning for uploads
-**Planned**
-- Introduce upload scanning pipeline before durable acceptance
-- Add quarantine + failure messaging path
+**Where**
+- `public/sw.js`
+- `src/components/pwa/register-sw.tsx`
+- `src/app/layout.tsx`
+- `src/app/app/permits/new/offline-draft.tsx`
+- `src/app/api/app/permits/create/route.ts`
 
-**Status**: todo
+**Status**: partial (service-worker background sync API and richer conflict reconciliation UX still pending)
 
-### [ ] PL-13.6 (DS-22.F) — Regional date formatting and i18n baseline
-**Planned**
-- Add locale-aware formatting defaults and user/workspace date preferences
-- Ensure DD/MM/YYYY-safe display and validation in EU workflows
+### [x] PL-13.5 (DS-22.E) — Malware scanning for uploads
+**What was built**
+- Added file scan result model and scanning job endpoint
+- New uploads now create pending scan records
+- Added pluggable scan engine abstraction with optional ClamAV HTTP integration and baseline fallback
 
-**Status**: todo
+**Where**
+- `db/migrations/0016_billing_offline_scan_i18n.sql` (`file_scan_results`)
+- `src/app/api/files/register/route.ts`
+- `src/app/api/jobs/files/scan/route.ts`
+- `src/lib/security/file-scan.ts`
+- `.env.example` (`CLAMAV_SCAN_ENDPOINT`)
+
+**Status**: partial (expand hard quarantine enforcement across all downstream file consumers)
+
+### [x] PL-13.6 (DS-22.F) — Regional date formatting and i18n baseline
+**What was built**
+- Added workspace locale/date format settings and persistence
+- Exposed preferences in settings UI with EU default (`en-IE`, `DD/MM/YYYY`)
+- Added shared date formatting utility and applied it to admin audit/invite date rendering
+
+**Where**
+- `db/migrations/0016_billing_offline_scan_i18n.sql` (workspace locale/date fields)
+- `src/app/app/settings/page.tsx`
+- `src/lib/i18n/date.ts`
+- `src/app/app/admin/page.tsx`
+
+**Status**: partial (continued app-wide date rendering migration still pending)
 
 ### [x] PL-13.7 (DS-22.G) — Pagination/filtering hardening
 **What was built**

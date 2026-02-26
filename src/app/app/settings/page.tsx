@@ -1,8 +1,10 @@
+import { revalidatePath } from 'next/cache';
 import { AppShell } from '@/components/app-shell';
 import { Card } from '@/components/ui/card';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentWorkspace } from '@/lib/workspace/current';
 import { getPlanLimitSnapshot } from '@/lib/limits';
+import { BillingControls } from './billing-controls';
 
 function Meter({ label, used, max }: { label: string; used: number; max: number }) {
   const pct = Math.min(100, Math.round((used / Math.max(max, 1)) * 100));
@@ -21,6 +23,24 @@ function Meter({ label, used, max }: { label: string; used: number; max: number 
   );
 }
 
+async function updateWorkspacePreferencesAction(formData: FormData) {
+  'use server';
+  const ctx = await getCurrentWorkspace();
+  if (!ctx || !['owner', 'admin'].includes(ctx.role)) return;
+
+  const locale = String(formData.get('locale') ?? 'en-IE');
+  const dateFormat = String(formData.get('date_format') ?? 'DD/MM/YYYY');
+  const billingEmail = String(formData.get('billing_email') ?? '').trim() || null;
+
+  const supabase = await createSupabaseServerClient();
+  await supabase
+    .from('workspaces')
+    .update({ locale, date_format: dateFormat, billing_email: billingEmail })
+    .eq('id', ctx.workspaceId);
+
+  revalidatePath('/app/settings');
+}
+
 export default async function SettingsPage() {
   const ctx = await getCurrentWorkspace();
   const supabase = await createSupabaseServerClient();
@@ -35,7 +55,7 @@ export default async function SettingsPage() {
 
   const { data: workspace } = await supabase
     .from('workspaces')
-    .select('billing_email,dedicated_hosting,dedicated_region,support_tier')
+    .select('billing_email,dedicated_hosting,dedicated_region,support_tier,locale,date_format,billing_status,stripe_customer_id')
     .eq('id', ctx.workspaceId)
     .maybeSingle();
 
@@ -60,14 +80,34 @@ export default async function SettingsPage() {
           <p className="text-sm">Support: {workspace?.support_tier ?? 'email'}</p>
           <p className="text-sm">Billing email: {workspace?.billing_email ?? 'not set'}</p>
           <p className="text-sm">Dedicated hosting: {workspace?.dedicated_hosting ? `yes (${workspace?.dedicated_region ?? 'region pending'})` : 'no'}</p>
+          <p className="text-sm">Locale: {workspace?.locale ?? 'en-IE'} • Date format: {workspace?.date_format ?? 'DD/MM/YYYY'}</p>
         </Card>
+
         <Card title="Usage">
           <div className="space-y-3">
             <Meter label="Users" used={members.count ?? 0} max={limits.users} />
             <Meter label="Contractors" used={contractors.count ?? 0} max={limits.contractors} />
             <Meter label="Permits this month" used={permitsMonth.count ?? 0} max={limits.permitsPerMonth} />
           </div>
-          <p className="mt-4 text-xs text-slate-600">Need more capacity? Upgrade via billing endpoint or sales-assisted flow.</p>
+          <p className="mt-4 text-xs text-slate-600">Need more capacity? Upgrade via billing controls below.</p>
+        </Card>
+
+        <Card title="Billing (self-serve Stripe)">
+          <p className="mb-2 text-xs text-slate-600">Billing status: {workspace?.billing_status ?? 'none'} • Customer: {workspace?.stripe_customer_id ?? 'none'}</p>
+          <BillingControls />
+        </Card>
+
+        <Card title="Workspace preferences (i18n/date)">
+          <form action={updateWorkspacePreferencesAction} className="space-y-2 text-sm">
+            <input name="billing_email" defaultValue={workspace?.billing_email ?? ''} placeholder="Billing email" className="w-full rounded border px-3 py-2" />
+            <input name="locale" defaultValue={workspace?.locale ?? 'en-IE'} placeholder="Locale e.g. en-IE" className="w-full rounded border px-3 py-2" />
+            <select name="date_format" defaultValue={workspace?.date_format ?? 'DD/MM/YYYY'} className="w-full rounded border px-3 py-2">
+              <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+              <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+              <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+            </select>
+            <button type="submit" className="rounded border px-3 py-2 text-sm">Save preferences</button>
+          </form>
         </Card>
       </div>
     </AppShell>

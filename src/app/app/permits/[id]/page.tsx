@@ -610,7 +610,7 @@ export default async function PermitDetailPage({ params }: { params: Promise<{ i
       .order('decided_at', { ascending: false }),
     supabase
       .from('files')
-      .select('id,path,bucket,created_at')
+      .select('id,path,bucket,created_at,blocked,block_reason')
       .eq('workspace_id', ctx.workspaceId)
       .eq('permit_id', id)
       .order('created_at', { ascending: false }),
@@ -697,9 +697,12 @@ export default async function PermitDetailPage({ params }: { params: Promise<{ i
               <div className="rounded-md border p-3">
                 <p className="mb-2 text-xs text-slate-600">Current attachments</p>
                 <ul className="space-y-1 text-xs text-slate-700">
-                  {attachments?.map((f) => (
+                  {attachments?.filter((f) => !f.blocked).map((f) => (
                     <li key={f.id} className="truncate">{f.bucket}: {f.path}</li>
                   ))}
+                  {(attachments?.filter((f) => f.blocked).length ?? 0) > 0 ? (
+                    <li className="text-red-600">{attachments?.filter((f) => f.blocked).length} attachment(s) quarantined and hidden.</li>
+                  ) : null}
                   {!attachments?.length ? <li className="text-slate-500">No attachments yet.</li> : null}
                 </ul>
               </div>

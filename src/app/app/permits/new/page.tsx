@@ -7,6 +7,7 @@ import { getCurrentWorkspace } from '@/lib/workspace/current';
 import { assertPermitsWithinLimit } from '@/lib/limits';
 import { logAuditEvent } from '@/lib/audit/events';
 import { upsertUsageCounter } from '@/lib/usage/counters';
+import { OfflineDraftHelper } from './offline-draft';
 
 async function createPermitAction(formData: FormData) {
   'use server';
@@ -81,6 +82,7 @@ export default async function NewPermitPage({
 
   return (
     <AppShell title="Create Permit">
+      <OfflineDraftHelper />
       {error === 'permit_limit_reached' ? (
         <p className="mb-3 rounded-md bg-amber-50 p-3 text-sm text-amber-700">
           Monthly permit limit reached for your plan. Upgrade to continue creating permits.

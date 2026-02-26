@@ -62,16 +62,21 @@ export default async function QualificationRecordsPage() {
     ctx
       ? (await supabase
           .from('files')
-          .select('id,contractor_qualification_id,path')
+          .select('id,contractor_qualification_id,path,blocked')
           .eq('workspace_id', ctx.workspaceId)
           .not('contractor_qualification_id', 'is', null)).data ?? []
       : []
   ]);
 
   const evidenceByRecord = new Map<string, string[]>();
+  const quarantinedByRecord = new Map<string, number>();
   for (const f of evidenceFiles) {
     const key = f.contractor_qualification_id as string | null;
     if (!key) continue;
+    if (f.blocked) {
+      quarantinedByRecord.set(key, (quarantinedByRecord.get(key) ?? 0) + 1);
+      continue;
+    }
     const list = evidenceByRecord.get(key) ?? [];
     list.push(f.path);
     evidenceByRecord.set(key, list);
@@ -111,6 +116,7 @@ export default async function QualificationRecordsPage() {
                     {(evidenceByRecord.get(r.id) ?? []).slice(0, 3).map((p) => (
                       <li key={p} className="truncate">{p}</li>
                     ))}
+                    {(quarantinedByRecord.get(r.id) ?? 0) > 0 ? <li className="text-red-600">{quarantinedByRecord.get(r.id)} quarantined file(s) hidden.</li> : null}
                     {(evidenceByRecord.get(r.id) ?? []).length === 0 ? <li>No evidence uploaded yet.</li> : null}
                   </ul>
                 </div>

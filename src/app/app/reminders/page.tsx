@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentWorkspace } from '@/lib/workspace/current';
 import { logAuditEvent } from '@/lib/audit/events';
+import { formatDateValue } from '@/lib/i18n/date';
 
 async function saveReminderSettingsAction(formData: FormData) {
   'use server';
@@ -135,7 +136,10 @@ export default async function RemindersPage() {
   const ctx = await getCurrentWorkspace();
   const supabase = await createSupabaseServerClient();
 
-  const [settings, deliveries, expiring] = await Promise.all([
+  const [workspacePrefs, settings, deliveries, expiring] = await Promise.all([
+    ctx
+      ? (await supabase.from('workspaces').select('locale,date_format').eq('id', ctx.workspaceId).maybeSingle()).data
+      : null,
     ctx
       ? (await supabase.from('reminder_settings').select('*').eq('workspace_id', ctx.workspaceId).maybeSingle()).data
       : null,
@@ -181,7 +185,7 @@ export default async function RemindersPage() {
               <li key={d.id} className="rounded border p-2">
                 <div className="font-medium">{d.delivery_key}</div>
                 <div className="text-slate-600">
-                  {d.recipient} • {new Date(d.sent_at).toLocaleString()} • mode={d.mode} • status={d.send_status}
+                  {d.recipient} • {formatDateValue(d.sent_at, { locale: (workspacePrefs?.locale as string | undefined) ?? 'en-IE', dateFormat: (workspacePrefs?.date_format as any) ?? 'DD/MM/YYYY' })} • mode={d.mode} • status={d.send_status}
                 </div>
                 <form action={resendDeliveryAction} className="mt-2">
                   <input type="hidden" name="delivery_id" value={d.id} />

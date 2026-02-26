@@ -2,6 +2,7 @@ import { AppShell } from '@/components/app-shell';
 import { Card } from '@/components/ui/card';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentWorkspace } from '@/lib/workspace/current';
+import { formatDateValue } from '@/lib/i18n/date';
 
 type Group = { date: string; items: Array<{ id: string; title: string; status: string; start_at: string | null; end_at: string | null }> };
 
@@ -61,7 +62,7 @@ export default async function PermitCalendarPage({
                 {g.items.map((p) => (
                   <li key={p.id} className="rounded bg-slate-50 p-2">
                     <div className="font-medium">{p.title}</div>
-                    <div className="text-slate-600">{p.status} • {p.start_at ? new Date(p.start_at).toLocaleTimeString() : 'unscheduled'}</div>
+                    <div className="text-slate-600">{p.status} • {p.start_at ? formatDateValue(p.start_at, { withTime: true }) : 'unscheduled'}</div>
                   </li>
                 ))}
               </ul>
