@@ -63,6 +63,18 @@ This file is the source of truth for delivery tracking.
 | DS-15.E delivery/change management | PL-6.5 | todo |
 | DS-15.F performance/scale validation | PL-6.6 | todo |
 | DS-15.G enterprise readiness track | PL-6.7 | todo |
+| DS-16.A permit duplication + quick issue | PL-7.1 | done |
+| DS-16.B permit calendar/timeline | PL-7.2 | done |
+| DS-16.C contractor portal scoped access | PL-7.3 | partial |
+| DS-16.D qualification requirement packs | PL-7.4 | todo |
+| DS-16.E permit preconditions checklist | PL-7.5 | todo |
+| DS-16.F toolbox talk capture | PL-7.6 | todo |
+| DS-16.G needs-changes task tracking | PL-7.7 | todo |
+| DS-16.H smart reminder actions | PL-7.8 | todo |
+| DS-16.I expiring public share links | PL-7.9 | todo |
+| DS-16.J template versioning + rollback | PL-7.10 | todo |
+| DS-16.K site-level dashboards | PL-7.11 | todo |
+| DS-16.L mobile field UX optimization | PL-7.12 | partial |
 
 ---
 
@@ -456,3 +468,104 @@ When any DS-linked feature is shipped:
 - Add support SLA and escalation implementation details
 
 **Status**: todo
+
+---
+
+## Phase 7 Feature Expansion (DS-16)
+
+### [x] PL-7.1 (DS-16.A) — Permit duplication + quick issue
+**What was built**
+- Added “Issue again” action on permits list
+- Duplicate flow carries forward core permit fields into a new draft copy
+
+**Where**
+- `src/app/app/permits/page.tsx`
+
+**Status**: done
+
+### [x] PL-7.2 (DS-16.B) — Permit calendar/timeline
+**What was built**
+- Added `/app/permits/calendar` timeline page grouped by date
+- Added status filtering and quick navigation from permits list
+
+**Where**
+- `src/app/app/permits/calendar/page.tsx`
+- `src/app/app/permits/page.tsx`
+
+**Status**: done
+
+### [x] PL-7.3 (DS-16.C) — Contractor portal (scoped)
+**What was built**
+- Added contractor-facing portal route with qualification visibility
+- Added self-service evidence upload per qualification record
+- Included authenticated access baseline
+
+**Where**
+- `src/app/contractor/page.tsx`
+- `src/components/files/upload-widget.tsx`
+
+**Status**: partial (needs dedicated contractor invite flow + strict contractor-only RLS isolation)
+
+### [ ] PL-7.4 (DS-16.D) — Qualification requirement packs
+**Planned**
+- Add pack data model and CRUD
+- Apply packs to templates and contractor assignments
+
+**Status**: todo
+
+### [ ] PL-7.5 (DS-16.E) — Permit preconditions checklist
+**Planned**
+- Add checklist model + permit pre-start signoff UI
+- Enforce activation blocking when incomplete
+
+**Status**: todo
+
+### [ ] PL-7.6 (DS-16.F) — Toolbox talk / briefing capture
+**Planned**
+- Add briefing records linked to permit with participant acknowledgements
+
+**Status**: todo
+
+### [ ] PL-7.7 (DS-16.G) — Needs-changes task tracking
+**Planned**
+- Create tasks from needs-changes decisions
+- Track assignee/due/completion
+
+**Status**: todo
+
+### [ ] PL-7.8 (DS-16.H) — Smart reminder actions
+**Planned**
+- Add renew/waive/bulk actions from reminders view
+- Persist decision + reason + audit event
+
+**Status**: todo
+
+### [ ] PL-7.9 (DS-16.I) — Expiring public share links
+**Planned**
+- Add read-only tokenized permit links with expiry/revocation
+
+**Status**: todo
+
+### [ ] PL-7.10 (DS-16.J) — Template versioning + rollback
+**Planned**
+- Add template_versions table and rollback actions
+
+**Status**: todo
+
+### [ ] PL-7.11 (DS-16.K) — Site-level dashboards
+**Planned**
+- Add per-site scorecards and comparative KPIs
+
+**Status**: todo
+
+### [x] PL-7.12 (DS-16.L) — Mobile field UX optimization
+**What was built**
+- Existing field-friendly button sizing and compact action patterns
+- Upload and decision actions optimized for quick mobile workflows
+
+**Where**
+- `src/components/ui/button.tsx`
+- `src/app/app/permits/[id]/page.tsx`
+- `src/components/files/upload-widget.tsx`
+
+**Status**: partial (dedicated mobile action rail and layout pass still needed)

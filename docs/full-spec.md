@@ -539,3 +539,55 @@ A workspace can:
 - Add tenant-specific residency/region controls and documentation.
 - Add support SLA policy and escalation paths.
 
+
+---
+
+## DS-16 Feature Expansion (Product Improvements)
+
+### DS-16.A Permit Duplication + Quick Issue
+- Allow users to duplicate an existing permit into a new draft.
+- Include “Issue again” action from permit detail/list for recurring tasks.
+
+### DS-16.B Permit Calendar / Timeline
+- Add calendar/timeline view of permits by status and start/end windows.
+- Include filters by site, contractor, and permit category.
+
+### DS-16.C Contractor Portal (Scoped Access)
+- Add contractor-facing limited-access view for qualification status and evidence uploads.
+- Restrict contractors to only their own records and assigned tasks.
+
+### DS-16.D Qualification Requirement Packs
+- Define reusable qualification packs by work type.
+- Apply packs to templates/sites/contractors.
+
+### DS-16.E Permit Preconditions Checklist
+- Add configurable pre-start checklist with required sign-off.
+- Block activation until mandatory checks are complete.
+
+### DS-16.F Toolbox Talk / Briefing Capture
+- Capture pre-work briefing details and participants.
+- Store acknowledgement records linked to permit.
+
+### DS-16.G Needs-Changes Task Tracking
+- Generate actionable tasks from “needs changes” decisions.
+- Track assignee, due date, and completion state.
+
+### DS-16.H Smart Reminder Actions
+- Add direct actions from reminder context (renewed, waive with reason, bulk update).
+- Record action outcomes in reminder and audit logs.
+
+### DS-16.I Expiring Public Share Links (Read-Only)
+- Generate time-bound read-only links for permit review by external stakeholders.
+- Support revocation and access logging.
+
+### DS-16.J Template Versioning + Rollback
+- Version templates on each change.
+- Allow rollback to previous versions with audit trace.
+
+### DS-16.K Site-Level Dashboarding
+- Add per-site scorecards and multi-site analytics filtering.
+- Show operational KPIs by site and period.
+
+### DS-16.L Mobile Field UX Optimization
+- Add mobile-optimized action rails, larger controls, and reduced form friction.
+- Prioritize one-thumb actions and media-first evidence capture.
