@@ -491,3 +491,51 @@ A workspace can:
 7. send a daily digest of expiring qualifications
 8. export a permit PDF
 9. enforce tenant isolation via RLS
+
+---
+
+## DS-15 Production Readiness Additions (New)
+
+### DS-15.A Reliability & Recovery
+- Add scheduled database backup verification checks (restore drill cadence).
+- Define RPO/RTO targets per tier (shared vs dedicated hosting).
+- Add dead-letter handling for failed reminder/email jobs.
+- Add retry policies with bounded exponential backoff for outbound notifications.
+
+### DS-15.B Security Hardening (Operational)
+- Add WAF / bot protection at edge.
+- Add centralized secret rotation policy and key rollover playbook.
+- Add structured audit access controls (least privilege for support/admin users).
+- Add abuse controls beyond per-endpoint rate limits (workspace-level throttling).
+
+### DS-15.C Observability & Alerting
+- Add structured logs with correlation IDs for API/job flows.
+- Add metrics dashboards for key SaaS SLIs:
+  - auth success/failure rate
+  - permit submission latency
+  - approval completion time
+  - reminder delivery success rate
+- Add alert thresholds and on-call runbook for degraded states.
+
+### DS-15.D Data Lifecycle & Governance
+- Add retention policy controls by plan/tier.
+- Add hard-delete + archival workflow for offboarding tenants.
+- Add export package endpoint for tenant data portability.
+- Add privacy controls for DSAR-style requests (where applicable).
+
+### DS-15.E Delivery & Change Management
+- Enforce CI + required checks before merge.
+- Add environment promotion model (dev → staging → prod).
+- Add migration safety process (preflight checks + rollback guidance).
+- Add release notes/changelog discipline for customer-visible changes.
+
+### DS-15.F Performance & Scale Validation
+- Add load tests for permit and reminders workflows.
+- Define baseline SLOs and capacity limits per plan.
+- Add query-performance budget and periodic index review.
+
+### DS-15.G Enterprise Readiness Track
+- Add optional SSO/SAML implementation plan for dedicated hosting.
+- Add tenant-specific residency/region controls and documentation.
+- Add support SLA policy and escalation paths.
+

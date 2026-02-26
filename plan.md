@@ -56,6 +56,13 @@ This file is the source of truth for delivery tracking.
 | DS-13.B CI gates | PL-3.4 | partial |
 | DS-14.A ICP definition | PL-5.1 | done |
 | DS-14.B success metrics | PL-5.1 | done |
+| DS-15.A reliability/recovery | PL-6.1 | todo |
+| DS-15.B operational security hardening | PL-6.2 | todo |
+| DS-15.C observability/alerting | PL-6.3 | todo |
+| DS-15.D data lifecycle/governance | PL-6.4 | todo |
+| DS-15.E delivery/change management | PL-6.5 | todo |
+| DS-15.F performance/scale validation | PL-6.6 | todo |
+| DS-15.G enterprise readiness track | PL-6.7 | todo |
 
 ---
 
@@ -389,3 +396,63 @@ When any DS-linked feature is shipped:
 1. Update DS → PL table status
 2. Update matching PL block (`What built / Where / Status`)
 3. Keep status honest (`done` only when truly complete)
+
+---
+
+## Phase 6 Production Readiness (New)
+
+### [ ] PL-6.1 (DS-15.A) — Reliability and recovery controls
+**Planned**
+- Add backup verification cadence and restore drill procedure
+- Add bounded retry + DLQ strategy for failed reminders/emails
+- Define RPO/RTO targets by tier
+
+**Status**: todo
+
+### [ ] PL-6.2 (DS-15.B) — Operational security hardening
+**Planned**
+- Add edge abuse controls/WAF profile
+- Add secret rotation and key rollover runbook
+- Add support/admin least-privilege policy and access review cadence
+
+**Status**: todo
+
+### [ ] PL-6.3 (DS-15.C) — Observability and alerting
+**Planned**
+- Add structured logging + request correlation IDs
+- Add metrics dashboard definitions and alert thresholds
+- Add on-call response procedures
+
+**Status**: todo
+
+### [ ] PL-6.4 (DS-15.D) — Data lifecycle/governance
+**Planned**
+- Add retention policy implementation by plan
+- Add tenant offboarding with archival/hard-delete paths
+- Add tenant data export/portability workflow
+
+**Status**: todo
+
+### [ ] PL-6.5 (DS-15.E) — Delivery/change management
+**Planned**
+- Enable CI workflow once token scope supports push
+- Add staged environment promotion flow
+- Add migration preflight + rollback playbook
+
+**Status**: todo
+
+### [ ] PL-6.6 (DS-15.F) — Performance & scale validation
+**Planned**
+- Add load test suite for permit/reminder critical paths
+- Define SLO baselines and capacity guardrails
+- Add periodic query/index review process
+
+**Status**: todo
+
+### [ ] PL-6.7 (DS-15.G) — Enterprise readiness track
+**Planned**
+- Add SSO/SAML path for dedicated hosting
+- Add region/residency controls documentation
+- Add support SLA and escalation implementation details
+
+**Status**: todo
