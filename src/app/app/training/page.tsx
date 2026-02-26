@@ -34,6 +34,7 @@ export default function TrainingPage() {
   const [inviteForm, setInviteForm] = useState({ contractorId: '', moduleId: '', emails: '', expiresHours: 168 });
 
   const [ocrText, setOcrText] = useState('');
+  const [ocrFileId, setOcrFileId] = useState('');
   const [ocrFields, setOcrFields] = useState<OcrField[]>([]);
   const [ocrDocumentId, setOcrDocumentId] = useState<string>('');
   const [ocrContractorId, setOcrContractorId] = useState<string>('');
@@ -124,12 +125,12 @@ export default function TrainingPage() {
 
   async function parseOcr(e: React.FormEvent) {
     e.preventDefault();
-    if (!ocrText.trim()) return;
+    if (!ocrText.trim() && !ocrFileId.trim()) return;
     setBusyMsg('Parsing OCR...');
     const res = await fetch('/api/app/ocr/parse', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: ocrText })
+      body: JSON.stringify({ text: ocrText.trim() || undefined, fileId: ocrFileId.trim() || undefined })
     });
     const j = await res.json();
     setBusyMsg('');
@@ -211,7 +212,8 @@ export default function TrainingPage() {
         <section className="rounded border bg-white p-3 md:col-span-2">
           <h2 className="mb-2 font-medium">OCR intake (review before apply)</h2>
           <form onSubmit={parseOcr} className="space-y-2">
-            <textarea className="w-full rounded border px-2 py-1 text-sm" rows={6} placeholder="Paste OCR text extracted from PDF/image here" value={ocrText} onChange={(e) => setOcrText(e.target.value)} />
+            <input className="w-full rounded border px-2 py-1 text-sm" placeholder="Uploaded file ID (preferred for native OCR)" value={ocrFileId} onChange={(e) => setOcrFileId(e.target.value)} />
+            <textarea className="w-full rounded border px-2 py-1 text-sm" rows={6} placeholder="Optional: paste OCR text extracted from PDF/image" value={ocrText} onChange={(e) => setOcrText(e.target.value)} />
             <button className="rounded bg-slate-800 px-3 py-1.5 text-sm text-white" type="submit">Parse OCR</button>
           </form>
 

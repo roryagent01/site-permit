@@ -3,10 +3,14 @@ import { z } from 'zod';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentWorkspace } from '@/lib/workspace/current';
 import { ok, fail } from '@/lib/api/response';
+import { extractTextFromStoredFile } from '@/lib/ocr/engine';
 
 const schema = z.object({
   fileId: z.string().uuid().optional(),
-  text: z.string().min(1)
+  text: z.string().min(1).optional()
+}).refine((v) => Boolean(v.fileId || v.text), {
+  message: 'Provide either fileId or text',
+  path: ['fileId']
 });
 
 function extractDate(text: string): string | null {
@@ -32,20 +36,67 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json(fail('invalid_payload', 'Invalid OCR parse payload'), { status: 400 });
 
-  const name = guessName(parsed.data.text);
-  const trainingName = guessTraining(parsed.data.text);
-  const expiry = extractDate(parsed.data.text);
-
   const supabase = await createSupabaseServerClient();
+
+  let rawText = parsed.data.text ?? '';
+  let parser = 'regex-v1';
+
+  if (!rawText && parsed.data.fileId) {
+    const { data: file } = await supabase
+      .from('files')
+      .select('id,bucket,path,final_path,blocked')
+      .eq('workspace_id', ctx.workspaceId)
+      .eq('id', parsed.data.fileId)
+      .maybeSingle();
+
+    if (!file) return NextResponse.json(fail('not_found', 'OCR file not found'), { status: 404 });
+    if (file.blocked) return NextResponse.json(fail('file_blocked', 'File is blocked pending scan/quarantine'), { status: 409 });
+
+    const filePath = file.path ?? file.final_path;
+    const engine = await extractTextFromStoredFile({
+      bucket: file.bucket,
+      path: filePath,
+      retries: 3
+    });
+
+    if (!engine.ok || !engine.text) {
+      const { data: failedDoc } = await supabase
+        .from('ocr_documents')
+        .insert({
+          workspace_id: ctx.workspaceId,
+          file_id: file.id,
+          source_type: 'upload',
+          status: 'failed',
+          parser: engine.engine,
+          raw_text: null,
+          created_by: ctx.user.id
+        })
+        .select('id')
+        .single();
+
+      return NextResponse.json(
+        fail('ocr_failed', engine.reason ?? 'OCR extraction failed', { documentId: failedDoc?.id }),
+        { status: 422 }
+      );
+    }
+
+    rawText = engine.text;
+    parser = engine.engine;
+  }
+
+  const name = guessName(rawText);
+  const trainingName = guessTraining(rawText);
+  const expiry = extractDate(rawText);
+
   const { data: doc } = await supabase
     .from('ocr_documents')
     .insert({
       workspace_id: ctx.workspaceId,
       file_id: parsed.data.fileId ?? null,
-      source_type: 'api',
+      source_type: parsed.data.fileId ? 'upload' : 'api',
       status: 'parsed',
-      raw_text: parsed.data.text,
-      parser: 'regex-v1',
+      raw_text: rawText,
+      parser,
       created_by: ctx.user.id
     })
     .select('id')
@@ -63,5 +114,5 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.json(ok({ documentId: doc?.id, extracted }));
+  return NextResponse.json(ok({ documentId: doc?.id, extracted, parser }));
 }

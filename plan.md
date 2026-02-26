@@ -95,7 +95,7 @@ This file is the source of truth for delivery tracking.
 | DS-21.A technical SEO baseline | PL-12.1 | done |
 | DS-21.B structured metadata | PL-12.2 | done |
 | DS-21.C agent discoverability docs | PL-12.3 | done |
-| DS-22.A native OCR processing from uploaded files | PL-13.1 | todo |
+| DS-22.A native OCR processing from uploaded files | PL-13.1 | partial |
 | DS-22.B audit log UX completeness | PL-13.2 | done |
 | DS-22.C self-serve billing automation | PL-13.3 | done |
 | DS-22.D offline tolerance (PWA-lite) | PL-13.4 | done |
@@ -945,13 +945,20 @@ When any DS-linked feature is shipped:
 
 ## Phase 13 Gap Remediation & V1.1 Enhancements (DS-22)
 
-### [ ] PL-13.1 (DS-22.A) — Native OCR processing from uploaded files
-**Planned**
-- Add OCR backend integration for direct PDF/image parsing from uploaded files
-- Support engine abstraction + retry/failure handling
-- Connect OCR parse route to actual file pipeline instead of text-only mode
+### [x] PL-13.1 (DS-22.A) — Native OCR processing from uploaded files
+**What was built**
+- OCR parse route now accepts `fileId` and performs direct extraction from uploaded files
+- Added pluggable OCR engine adapter (`OCR_HTTP_ENDPOINT`) with retry handling and fallback behavior
+- Added failed-document recording path and explicit OCR failure response handling
+- Training OCR UI now supports native file-based OCR input (file ID), while keeping optional text fallback
 
-**Status**: todo
+**Where**
+- `src/app/api/app/ocr/parse/route.ts`
+- `src/lib/ocr/engine.ts`
+- `src/app/app/training/page.tsx`
+- `.env.example` (`OCR_HTTP_ENDPOINT`, `OCR_HTTP_API_KEY`)
+
+**Status**: partial (full binary/PDF local OCR fallback engine not included; requires external OCR provider for non-text files)
 
 ### [x] PL-13.2 (DS-22.B) — Audit log UX completeness
 **What was built**
