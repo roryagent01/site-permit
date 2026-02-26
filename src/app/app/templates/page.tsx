@@ -121,6 +121,55 @@ async function createTemplateAction(formData: FormData) {
   revalidatePath('/app/templates');
 }
 
+async function updateTemplateAction(formData: FormData) {
+  'use server';
+  const ctx = await getCurrentWorkspace();
+  if (!ctx || !['admin', 'owner'].includes(ctx.role)) return;
+  const templateId = String(formData.get('template_id') ?? '');
+  if (!templateId) return;
+
+  const name = String(formData.get('name') ?? '').trim();
+  const category = String(formData.get('category') ?? '').trim();
+  const gatingMode = String(formData.get('gating_mode') || 'warn');
+  const requiredQualificationTypeIds = String(formData.get('required_qualification_type_ids') || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const trainingGateMode = String(formData.get('training_gate_mode') || 'warn');
+  const requiredTrainingModuleIds = String(formData.get('required_training_module_ids') || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const supabase = await createSupabaseServerClient();
+  await supabase
+    .from('permit_templates')
+    .update({
+      ...(name ? { name } : {}),
+      ...(category ? { category } : {}),
+      definition: {
+        requiredFields: ['location', 'start_at', 'end_at'],
+        requiredApprovals: [{ order: 1, role: 'approver' }],
+        qualificationGate: { mode: gatingMode, requiredQualificationTypeIds },
+        trainingGate: { mode: trainingGateMode, requiredTrainingModuleIds }
+      }
+    })
+    .eq('workspace_id', ctx.workspaceId)
+    .eq('id', templateId);
+
+  await snapshotTemplateVersion(ctx.workspaceId, templateId, ctx.user.id, supabase);
+  await logAuditEvent({
+    workspaceId: ctx.workspaceId,
+    actorUserId: ctx.user.id,
+    action: 'template.updated',
+    objectType: 'permit_template',
+    objectId: templateId,
+    payload: { gatingMode, requiredQualificationTypeIds, trainingGateMode, requiredTrainingModuleIds }
+  });
+
+  revalidatePath('/app/templates');
+}
+
 async function rollbackTemplateAction(formData: FormData) {
   'use server';
   const ctx = await getCurrentWorkspace();
@@ -166,7 +215,7 @@ export default async function TemplatesPage() {
   const templates = ctx
     ? (await supabase
         .from('permit_templates')
-        .select('id,name,category,created_at,template_versions(id,version_no,created_at)')
+        .select('id,name,category,definition,created_at,template_versions(id,version_no,created_at)')
         .eq('workspace_id', ctx.workspaceId)
         .order('created_at', { ascending: false })).data ?? []
     : [];
@@ -216,6 +265,34 @@ export default async function TemplatesPage() {
                   <div className="font-medium">{t.name}</div>
                   <div className="text-slate-600">{t.category}</div>
                   <div className="mt-1 text-xs text-slate-500">Versions: {versions.map((v) => `v${v.version_no}`).join(', ') || 'none'}</div>
+
+                  <form action={updateTemplateAction} className="mt-2 grid gap-2">
+                    <input type="hidden" name="template_id" value={t.id} />
+                    <input name="name" defaultValue={t.name} className="rounded border px-2 py-1 text-xs" />
+                    <input name="category" defaultValue={t.category} className="rounded border px-2 py-1 text-xs" />
+                    <select name="gating_mode" defaultValue={(t.definition as any)?.qualificationGate?.mode ?? 'warn'} className="rounded border px-2 py-1 text-xs">
+                      <option value="warn">Qualification gate: warn</option>
+                      <option value="block">Qualification gate: block</option>
+                    </select>
+                    <input
+                      name="required_qualification_type_ids"
+                      defaultValue={((t.definition as any)?.qualificationGate?.requiredQualificationTypeIds ?? []).join(',')}
+                      className="rounded border px-2 py-1 text-xs"
+                      placeholder="Required qualification type IDs"
+                    />
+                    <select name="training_gate_mode" defaultValue={(t.definition as any)?.trainingGate?.mode ?? 'warn'} className="rounded border px-2 py-1 text-xs">
+                      <option value="warn">Training gate: warn</option>
+                      <option value="block">Training gate: block</option>
+                    </select>
+                    <input
+                      name="required_training_module_ids"
+                      defaultValue={((t.definition as any)?.trainingGate?.requiredTrainingModuleIds ?? []).join(',')}
+                      className="rounded border px-2 py-1 text-xs"
+                      placeholder="Required training module IDs"
+                    />
+                    <Button type="submit" variant="secondary" className="min-h-0 px-2 py-1 text-xs">Save update (snapshot)</Button>
+                  </form>
+
                   {versions.length ? (
                     <form action={rollbackTemplateAction} className="mt-2 flex items-center gap-2">
                       <input type="hidden" name="template_id" value={t.id} />

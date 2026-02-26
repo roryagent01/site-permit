@@ -72,7 +72,7 @@ This file is the source of truth for delivery tracking.
 | DS-16.G needs-changes task tracking | PL-7.7 | done |
 | DS-16.H smart reminder actions | PL-7.8 | done |
 | DS-16.I expiring public share links | PL-7.9 | done |
-| DS-16.J template versioning + rollback | PL-7.10 | partial |
+| DS-16.J template versioning + rollback | PL-7.10 | done |
 | DS-16.K site-level dashboards | PL-7.11 | done |
 | DS-16.L mobile field UX optimization | PL-7.12 | done |
 | DS-17.A API parity for core capabilities | PL-8.1 | done |
