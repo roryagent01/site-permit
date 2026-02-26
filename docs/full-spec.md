@@ -630,3 +630,25 @@ A workspace can:
 
 ### DS-18.D Agent-operable onboarding APIs
 - Invite creation/list/revoke/accept flows must be API-accessible for AI agent automation.
+
+---
+
+## DS-19 Contractor Site Induction & Training (Embedded)
+
+### DS-19.A Training modules
+- Workspace can create site induction/training modules with title, summary, and training link/content reference.
+
+### DS-19.B Bulk training link dispatch
+- Admin/issuer can send training links to multiple contractor employees in one action.
+- Dispatch supports many recipients per contractor assignment.
+
+### DS-19.C Electronic completion before site arrival
+- Recipient opens unique tokenized link, completes induction electronically, and completion is recorded.
+- Link expiry/revocation and completion state must be enforced.
+
+### DS-19.D Profile crediting
+- Completed induction is credited to contractor employee profile/history in platform records.
+- Completion should be queryable in contractor context for permit gating/reporting.
+
+### DS-19.E Agent-operable APIs
+- Module create/list, invite send/list, and completion verification must be API-accessible.

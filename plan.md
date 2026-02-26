@@ -83,6 +83,11 @@ This file is the source of truth for delivery tracking.
 | DS-18.B contractor self-onboarding invite links | PL-9.2 | done |
 | DS-18.C invite security and lifecycle | PL-9.3 | partial |
 | DS-18.D agent-operable onboarding APIs | PL-9.4 | done |
+| DS-19.A training modules | PL-10.1 | done |
+| DS-19.B bulk training dispatch | PL-10.2 | done |
+| DS-19.C electronic completion before arrival | PL-10.3 | done |
+| DS-19.D profile crediting | PL-10.4 | done |
+| DS-19.E agent-operable training APIs | PL-10.5 | done |
 
 ---
 
@@ -720,5 +725,69 @@ When any DS-linked feature is shipped:
 - `src/app/api/app/onboarding/contractor-invites/route.ts`
 - `src/app/api/public/onboarding/employee/[token]/route.ts`
 - `src/app/api/public/onboarding/contractor/[token]/route.ts`
+
+**Status**: done
+
+---
+
+## Phase 10 Training & Induction System (DS-19)
+
+### [x] PL-10.1 (DS-19.A) — Training modules
+**What was built**
+- Training module model and module create/list APIs
+- Training UI for module creation and visibility
+
+**Where**
+- `db/migrations/0012_training_induction.sql`
+- `src/app/api/app/training/modules/route.ts`
+- `src/app/app/training/page.tsx`
+
+**Status**: done
+
+### [x] PL-10.2 (DS-19.B) — Bulk training dispatch
+**What was built**
+- Bulk invite creation for multiple contractor employee emails
+- Contractor contact records auto-upsert on dispatch
+- Optional email dispatch using configured provider
+
+**Where**
+- `src/app/api/app/training/invites/route.ts`
+- `db/migrations/0012_training_induction.sql`
+- `src/app/app/training/page.tsx`
+
+**Status**: done
+
+### [x] PL-10.3 (DS-19.C) — Electronic completion flow
+**What was built**
+- Public tokenized training endpoint with expiry/revocation/used-state checks
+- Completion endpoint records completion payload and timestamp
+
+**Where**
+- `src/app/api/public/training/[token]/route.ts`
+- `db/migrations/0012_training_induction.sql`
+
+**Status**: done
+
+### [x] PL-10.4 (DS-19.D) — Profile crediting
+**What was built**
+- Credited completion records persisted to contractor training history
+- Training UI shows completed induction credits
+
+**Where**
+- `db/migrations/0012_training_induction.sql` (`contractor_training_records`)
+- `src/app/api/public/training/[token]/route.ts`
+- `src/app/app/training/page.tsx`
+
+**Status**: done
+
+### [x] PL-10.5 (DS-19.E) — Agent-operable training APIs
+**What was built**
+- API routes for modules, invite dispatch/listing, and completion verification
+- Machine-usable JSON responses for agent workflows
+
+**Where**
+- `src/app/api/app/training/modules/route.ts`
+- `src/app/api/app/training/invites/route.ts`
+- `src/app/api/public/training/[token]/route.ts`
 
 **Status**: done

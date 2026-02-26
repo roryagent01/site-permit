@@ -6,6 +6,7 @@ const links = [
   ['Permits', '/app/permits'],
   ['Templates', '/app/templates'],
   ['Contractors', '/app/contractors'],
+  ['Training', '/app/training'],
   ['Qualifications', '/app/qualifications'],
   ['Reminders', '/app/reminders'],
   ['Reports', '/app/reports'],
