@@ -129,6 +129,47 @@ async function revokeContractorInviteAction(formData: FormData) {
   revalidatePath('/app/admin');
 }
 
+async function createContractorPortalInviteAction(formData: FormData) {
+  'use server';
+  const ctx = await getCurrentWorkspace();
+  if (!ctx || !['owner', 'admin', 'issuer'].includes(ctx.role)) return;
+  const contractorId = String(formData.get('contractor_id') ?? '').trim();
+  const hours = Number(formData.get('hours') || 168);
+  if (!contractorId) return;
+
+  const supabase = await createSupabaseServerClient();
+  const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+  const expiresAt = new Date(Date.now() + Math.max(1, Math.min(720, hours)) * 3600 * 1000).toISOString();
+
+  await supabase.from('contractor_portal_invites').insert({
+    workspace_id: ctx.workspaceId,
+    contractor_id: contractorId,
+    token,
+    expires_at: expiresAt,
+    created_by: ctx.user.id
+  });
+
+  revalidatePath('/app/admin');
+}
+
+async function revokeContractorPortalInviteAction(formData: FormData) {
+  'use server';
+  const ctx = await getCurrentWorkspace();
+  if (!ctx || !['owner', 'admin', 'issuer'].includes(ctx.role)) return;
+  const inviteId = String(formData.get('invite_id') ?? '');
+  if (!inviteId) return;
+
+  const supabase = await createSupabaseServerClient();
+  await supabase
+    .from('contractor_portal_invites')
+    .update({ revoked_at: new Date().toISOString() })
+    .eq('workspace_id', ctx.workspaceId)
+    .eq('id', inviteId)
+    .is('revoked_at', null);
+
+  revalidatePath('/app/admin');
+}
+
 export default async function AdminPage({
   searchParams
 }: {
@@ -138,7 +179,7 @@ export default async function AdminPage({
   const ctx = await getCurrentWorkspace();
   const supabase = await createSupabaseServerClient();
 
-  const [members, audits, employeeInvites, contractorInvites, sites] = await Promise.all([
+  const [members, audits, employeeInvites, contractorInvites, contractorPortalInvites, sites, contractors] = await Promise.all([
     ctx
       ? (await supabase
           .from('workspace_members')
@@ -170,7 +211,16 @@ export default async function AdminPage({
           .order('created_at', { ascending: false })
           .limit(30)).data ?? []
       : [],
-    ctx ? (await supabase.from('sites').select('id,name').eq('workspace_id', ctx.workspaceId).order('name')).data ?? [] : []
+    ctx
+      ? (await supabase
+          .from('contractor_portal_invites')
+          .select('id,contractor_id,token,expires_at,revoked_at,contractors(name)')
+          .eq('workspace_id', ctx.workspaceId)
+          .order('created_at', { ascending: false })
+          .limit(30)).data ?? []
+      : [],
+    ctx ? (await supabase.from('sites').select('id,name').eq('workspace_id', ctx.workspaceId).order('name')).data ?? [] : [],
+    ctx ? (await supabase.from('contractors').select('id,name').eq('workspace_id', ctx.workspaceId).order('name')).data ?? [] : []
   ]);
 
   return (
@@ -258,6 +308,35 @@ export default async function AdminPage({
               </li>
             ))}
             {!contractorInvites.length ? <li className="text-slate-500">No contractor invites yet.</li> : null}
+          </ul>
+        </Card>
+
+        <Card title="Contractor portal scoped links">
+          <form action={createContractorPortalInviteAction} className="mb-3 grid gap-2">
+            <select name="contractor_id" className="rounded border px-3 py-2 text-sm">
+              <option value="">Select contractor</option>
+              {contractors.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            <input name="hours" type="number" defaultValue={168} min={1} max={720} className="rounded border px-3 py-2 text-sm" />
+            <Button type="submit">Create contractor portal link</Button>
+          </form>
+          <ul className="space-y-2 text-xs">
+            {contractorPortalInvites.map((i) => (
+              <li key={i.id} className="rounded border p-2">
+                <div className="font-medium">{(i.contractors as { name?: string } | null)?.name ?? i.contractor_id}</div>
+                <div className="text-slate-600 break-all">{`${process.env.APP_BASE_URL ?? ''}/contractor/portal/${i.token}`}</div>
+                <div className="text-slate-500">Expires: {new Date(i.expires_at).toLocaleString()} {i.revoked_at ? '• revoked' : ''}</div>
+                {!i.revoked_at ? (
+                  <form action={revokeContractorPortalInviteAction} className="mt-1">
+                    <input type="hidden" name="invite_id" value={i.id} />
+                    <Button type="submit" variant="danger" className="min-h-0 px-2 py-1 text-xs">Revoke</Button>
+                  </form>
+                ) : null}
+              </li>
+            ))}
+            {!contractorPortalInvites.length ? <li className="text-slate-500">No contractor portal links yet.</li> : null}
           </ul>
         </Card>
 

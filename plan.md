@@ -65,7 +65,7 @@ This file is the source of truth for delivery tracking.
 | DS-15.G enterprise readiness track | PL-6.7 | todo |
 | DS-16.A permit duplication + quick issue | PL-7.1 | done |
 | DS-16.B permit calendar/timeline | PL-7.2 | done |
-| DS-16.C contractor portal scoped access | PL-7.3 | partial |
+| DS-16.C contractor portal scoped access | PL-7.3 | done |
 | DS-16.D qualification requirement packs | PL-7.4 | done |
 | DS-16.E permit preconditions checklist | PL-7.5 | done |
 | DS-16.F toolbox talk capture | PL-7.6 | done |
@@ -513,15 +513,18 @@ When any DS-linked feature is shipped:
 
 ### [x] PL-7.3 (DS-16.C) — Contractor portal (scoped)
 **What was built**
-- Added contractor-facing portal route with qualification visibility
-- Added self-service evidence upload per qualification record
-- Included authenticated access baseline
+- Added contractor-facing scoped portal link model
+- Added admin flow for creating/revoking contractor portal links
+- Added tokenized contractor portal page showing only invite-linked contractor qualification/training data
 
 **Where**
-- `src/app/contractor/page.tsx`
-- `src/components/files/upload-widget.tsx`
+- `db/migrations/0014_contractor_portal_invites.sql`
+- `src/app/api/app/onboarding/contractor-portal-invites/route.ts`
+- `src/app/api/public/contractor-portal/[token]/route.ts`
+- `src/app/contractor/portal/[token]/page.tsx`
+- `src/app/app/admin/page.tsx`
 
-**Status**: partial (needs dedicated contractor invite flow + strict contractor-only RLS isolation)
+**Status**: done
 
 ### [x] PL-7.4 (DS-16.D) — Qualification requirement packs
 **What was built**
