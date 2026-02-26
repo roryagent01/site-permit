@@ -591,3 +591,22 @@ A workspace can:
 ### DS-16.L Mobile Field UX Optimization
 - Add mobile-optimized action rails, larger controls, and reduced form friction.
 - Prioritize one-thumb actions and media-first evidence capture.
+
+---
+
+## DS-17 AI-Agent-Friendly API-First Requirement (New)
+
+### DS-17.A API parity for core capabilities
+- Every major workflow must be executable through documented APIs, not only UI.
+- UI may call server actions internally, but equivalent API routes must exist for autonomous agent operation.
+
+### DS-17.B Machine-usable contracts
+- Use stable identifiers and predictable JSON request/response structures.
+- Return explicit, non-ambiguous error codes/messages for retry/branch logic.
+
+### DS-17.C API security parity
+- Enforce workspace scoping and RBAC in APIs at least as strictly as UI.
+- Do not expose privileged operations only via hidden endpoints.
+
+### DS-17.D Agent integration documentation
+- For each major capability, document endpoint, roles, payload schema, and failure behavior.

@@ -75,6 +75,10 @@ This file is the source of truth for delivery tracking.
 | DS-16.J template versioning + rollback | PL-7.10 | partial |
 | DS-16.K site-level dashboards | PL-7.11 | todo |
 | DS-16.L mobile field UX optimization | PL-7.12 | partial |
+| DS-17.A API parity for core capabilities | PL-8.1 | done |
+| DS-17.B machine-usable contracts | PL-8.2 | done |
+| DS-17.C API security parity | PL-8.3 | done |
+| DS-17.D agent integration documentation | PL-8.4 | done |
 
 ---
 
@@ -592,3 +596,52 @@ When any DS-linked feature is shipped:
 - `src/components/files/upload-widget.tsx`
 
 **Status**: partial (dedicated mobile action rail and layout pass still needed)
+
+---
+
+## Phase 8 AI-Agent-Friendly API Parity (DS-17)
+
+### [x] PL-8.1 (DS-17.A) — API parity for major workflows
+**What was built**
+- Added unified permit action API for transitions, approvals/decisions, checklist operations, and task completion
+- Added qualification pack API (list/create)
+- Added reminder smart-action API (bulk renew/waive)
+
+**Where**
+- `src/app/api/app/permits/[permitId]/actions/route.ts`
+- `src/app/api/app/qualifications/packs/route.ts`
+- `src/app/api/app/reminders/qualifications/actions/route.ts`
+
+**Status**: done
+
+### [x] PL-8.2 (DS-17.B) — Contract normalization
+**What was built**
+- Added standard API response envelope helpers for success/error
+- Added structured error codes/messages across new agent routes
+
+**Where**
+- `src/lib/api/response.ts`
+- `src/app/api/app/**/route.ts`
+
+**Status**: done
+
+### [x] PL-8.3 (DS-17.C) — API RBAC/scoping parity
+**What was built**
+- Enforced workspace scoping + role checks in new API routes
+- Added validation-driven payload gating with predictable failure responses
+
+**Where**
+- `src/app/api/app/permits/[permitId]/actions/route.ts`
+- `src/app/api/app/qualifications/packs/route.ts`
+- `src/app/api/app/reminders/qualifications/actions/route.ts`
+
+**Status**: done
+
+### [x] PL-8.4 (DS-17.D) — Agent integration docs
+**What was built**
+- Published API capability matrix with endpoint contracts, roles, payloads, and common error semantics
+
+**Where**
+- `docs/agent-api.md`
+
+**Status**: done
