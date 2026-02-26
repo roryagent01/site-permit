@@ -88,6 +88,10 @@ This file is the source of truth for delivery tracking.
 | DS-19.C electronic completion before arrival | PL-10.3 | done |
 | DS-19.D profile crediting | PL-10.4 | done |
 | DS-19.E agent-operable training APIs | PL-10.5 | done |
+| DS-20.A OCR ingestion | PL-11.1 | done |
+| DS-20.B structured extraction output | PL-11.2 | done |
+| DS-20.C mapping to platform entities | PL-11.3 | done |
+| DS-20.D agent-operable OCR APIs | PL-11.4 | done |
 
 ---
 
@@ -789,5 +793,48 @@ When any DS-linked feature is shipped:
 - `src/app/api/app/training/modules/route.ts`
 - `src/app/api/app/training/invites/route.ts`
 - `src/app/api/public/training/[token]/route.ts`
+
+**Status**: done
+
+---
+
+## Phase 11 OCR Intake for Training/Certs (DS-20)
+
+### [x] PL-11.1 (DS-20.A) — OCR ingestion
+**What was built**
+- Added OCR document intake model and parse endpoint accepting OCR text payloads (PDF/image OCR output)
+
+**Where**
+- `db/migrations/0013_training_gating_and_ocr.sql`
+- `src/app/api/app/ocr/parse/route.ts`
+
+**Status**: done
+
+### [x] PL-11.2 (DS-20.B) — Structured extraction output
+**What was built**
+- Persisted field-level extraction rows (`name`, `training_name`, `expiry_date`) with confidence and snippet metadata
+
+**Where**
+- `db/migrations/0013_training_gating_and_ocr.sql`
+- `src/app/api/app/ocr/parse/route.ts`
+
+**Status**: done
+
+### [x] PL-11.3 (DS-20.C) — Mapping to entities
+**What was built**
+- Added OCR apply endpoint to map extracted data into contractor training records and/or contractor qualification records
+
+**Where**
+- `src/app/api/app/ocr/apply/route.ts`
+
+**Status**: done
+
+### [x] PL-11.4 (DS-20.D) — Agent-operable OCR APIs
+**What was built**
+- Agent-accessible OCR parse + apply endpoints with normalized response contracts
+
+**Where**
+- `src/app/api/app/ocr/parse/route.ts`
+- `src/app/api/app/ocr/apply/route.ts`
 
 **Status**: done

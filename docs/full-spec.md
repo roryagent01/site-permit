@@ -652,3 +652,22 @@ A workspace can:
 
 ### DS-19.E Agent-operable APIs
 - Module create/list, invite send/list, and completion verification must be API-accessible.
+
+---
+
+## DS-20 Document OCR for Training/Certification Intake
+
+### DS-20.A OCR ingestion
+- Allow PDF/image upload for training records/certifications.
+- Run OCR extraction to identify key fields (person name, training name, issue/expiry dates, provider where available).
+
+### DS-20.B Structured extraction output
+- Store extracted fields with confidence scores and raw text snippets.
+- Support user review/correction before saving to qualification/training records.
+
+### DS-20.C Mapping to platform entities
+- Map extracted data into contractor contacts, qualification records, or training completion records.
+- Keep source-document linkage for auditability.
+
+### DS-20.D Agent-operable OCR APIs
+- Expose OCR parse and apply endpoints for autonomous agent workflows.

@@ -56,6 +56,11 @@ async function createTemplateAction(formData: FormData) {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
+  const trainingGateMode = String(formData.get('training_gate_mode') || 'warn');
+  const requiredTrainingModuleIds = String(formData.get('required_training_module_ids') || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
   const approvalRoles = String(formData.get('approval_roles') || 'approver')
     .split(',')
     .map((s) => s.trim())
@@ -73,6 +78,10 @@ async function createTemplateAction(formData: FormData) {
         qualificationGate: {
           mode: gatingMode,
           requiredQualificationTypeIds
+        },
+        trainingGate: {
+          mode: trainingGateMode,
+          requiredTrainingModuleIds
         }
       },
       created_by: ctx.user.id
@@ -98,7 +107,15 @@ async function createTemplateAction(formData: FormData) {
     action: 'template.created',
     objectType: 'permit_template',
     objectId: template?.id,
-    payload: { name, category, gatingMode, requiredQualificationTypeIds, approvalRoles }
+    payload: {
+      name,
+      category,
+      gatingMode,
+      requiredQualificationTypeIds,
+      trainingGateMode,
+      requiredTrainingModuleIds,
+      approvalRoles
+    }
   });
 
   revalidatePath('/app/templates');
@@ -168,6 +185,15 @@ export default async function TemplatesPage() {
             <input
               name="required_qualification_type_ids"
               placeholder="Required qualification type IDs (comma-separated)"
+              className="w-full rounded-md border px-3 py-2"
+            />
+            <select name="training_gate_mode" className="w-full rounded-md border px-3 py-2">
+              <option value="warn">Training gate: warn</option>
+              <option value="block">Training gate: block</option>
+            </select>
+            <input
+              name="required_training_module_ids"
+              placeholder="Required training module IDs (comma-separated)"
               className="w-full rounded-md border px-3 py-2"
             />
             <input

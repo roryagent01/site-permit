@@ -82,6 +82,39 @@ async function checkQualificationGate(
   return { blocked: evalResult.blocked, reason: evalResult.reason };
 }
 
+async function checkTrainingGate(
+  workspaceId: string,
+  templateId: string | null,
+  contractorId: string | null,
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>
+): Promise<QualificationGateResult> {
+  if (!templateId || !contractorId) return { blocked: false };
+
+  const { data: tpl } = await supabase
+    .from('permit_templates')
+    .select('definition')
+    .eq('workspace_id', workspaceId)
+    .eq('id', templateId)
+    .maybeSingle();
+
+  const gate = (tpl?.definition as { trainingGate?: { mode?: 'block' | 'warn'; requiredTrainingModuleIds?: string[] } })
+    ?.trainingGate;
+  const required = gate?.requiredTrainingModuleIds ?? [];
+  if (!required.length) return { blocked: false };
+
+  const { data: completed } = await supabase
+    .from('contractor_training_records')
+    .select('module_id')
+    .eq('workspace_id', workspaceId)
+    .eq('contractor_id', contractorId);
+
+  const done = new Set((completed ?? []).map((r) => r.module_id));
+  const missing = required.filter((id) => !done.has(id));
+  if (!missing.length) return { blocked: false };
+  if (gate?.mode === 'block') return { blocked: true, reason: `missing completed training modules: ${missing.join(', ')}` };
+  return { blocked: false, reason: `warning: missing training modules ${missing.join(', ')}` };
+}
+
 async function transitionPermitAction(formData: FormData) {
   'use server';
   const permitId = String(formData.get('permit_id'));
@@ -141,6 +174,19 @@ async function transitionPermitAction(formData: FormData) {
         objectType: 'permit',
         objectId: permitId,
         payload: { reason: gate.reason }
+      });
+      return;
+    }
+
+    const trainingGate = await checkTrainingGate(ctx.workspaceId, permitForGate?.template_id ?? null, contractorId, supabase);
+    if (trainingGate.blocked) {
+      await logAuditEvent({
+        workspaceId: ctx.workspaceId,
+        actorUserId: ctx.user.id,
+        action: 'permit.submit_blocked_training',
+        objectType: 'permit',
+        objectId: permitId,
+        payload: { reason: trainingGate.reason }
       });
       return;
     }
@@ -266,6 +312,19 @@ async function approvePermitAction(formData: FormData) {
       objectType: 'permit',
       objectId: permitId,
       payload: { reason: gate.reason }
+    });
+    return;
+  }
+
+  const trainingGate = await checkTrainingGate(ctx.workspaceId, permitForGate?.template_id ?? null, contractorId, supabase);
+  if (trainingGate.blocked) {
+    await logAuditEvent({
+      workspaceId: ctx.workspaceId,
+      actorUserId: ctx.user.id,
+      action: 'permit.approve_blocked_training',
+      objectType: 'permit',
+      objectId: permitId,
+      payload: { reason: trainingGate.reason }
     });
     return;
   }
