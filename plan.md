@@ -970,6 +970,7 @@ When any DS-linked feature is shipped:
 - Added Stripe billing portal endpoint for subscription management
 - Added settings UI controls to launch checkout and billing portal
 - Added Stripe webhook endpoint and event persistence for subscription state sync
+- Added billing event visibility in settings (latest webhook events list)
 
 **Where**
 - `src/app/api/billing/stripe/checkout/route.ts`

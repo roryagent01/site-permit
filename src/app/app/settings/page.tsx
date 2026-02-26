@@ -59,14 +59,22 @@ export default async function SettingsPage() {
     .eq('id', ctx.workspaceId)
     .maybeSingle();
 
-  const [members, contractors, permitsMonth] = await Promise.all([
+  const [members, contractors, permitsMonth, webhookEvents] = await Promise.all([
     supabase.from('workspace_members').select('*', { count: 'exact', head: true }).eq('workspace_id', ctx.workspaceId),
     supabase.from('contractors').select('*', { count: 'exact', head: true }).eq('workspace_id', ctx.workspaceId),
     supabase
       .from('permits')
       .select('*', { count: 'exact', head: true })
       .eq('workspace_id', ctx.workspaceId)
-      .gte('created_at', new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1)).toISOString())
+      .gte('created_at', new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1)).toISOString()),
+    workspace?.stripe_customer_id
+      ? supabase
+          .from('billing_webhook_events')
+          .select('stripe_event_id,event_type,processed_at')
+          .eq('customer_id', workspace.stripe_customer_id)
+          .order('processed_at', { ascending: false })
+          .limit(5)
+      : Promise.resolve({ data: [] as { stripe_event_id: string; event_type: string; processed_at: string }[] })
   ]);
 
   const limits = getPlanLimitSnapshot(ctx.workspacePlan);
@@ -95,6 +103,17 @@ export default async function SettingsPage() {
         <Card title="Billing (self-serve Stripe)">
           <p className="mb-2 text-xs text-slate-600">Billing status: {workspace?.billing_status ?? 'none'} • Customer: {workspace?.stripe_customer_id ?? 'none'}</p>
           <BillingControls />
+          <div className="mt-3 border-t pt-3">
+            <p className="mb-2 text-xs font-medium text-slate-700">Recent billing webhook events</p>
+            <ul className="space-y-1 text-xs text-slate-600">
+              {(webhookEvents.data ?? []).map((e) => (
+                <li key={e.stripe_event_id} className="rounded bg-slate-50 px-2 py-1">
+                  {e.event_type} • {new Date(e.processed_at).toISOString()}
+                </li>
+              ))}
+              {(webhookEvents.data ?? []).length === 0 ? <li>No webhook events yet.</li> : null}
+            </ul>
+          </div>
         </Card>
 
         <Card title="Workspace preferences (i18n/date)">
