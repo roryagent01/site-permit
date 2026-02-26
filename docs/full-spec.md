@@ -671,3 +671,17 @@ A workspace can:
 
 ### DS-20.D Agent-operable OCR APIs
 - Expose OCR parse and apply endpoints for autonomous agent workflows.
+
+---
+
+## DS-21 Public Web Presence & SEO (New)
+
+### DS-21.A Technical SEO baseline
+- Provide `/sitemap.xml` and `/robots.txt`.
+- Ensure canonical metadata and descriptive titles/descriptions for public pages.
+
+### DS-21.B Structured metadata
+- Add Organization/WebSite JSON-LD on public pages where applicable.
+
+### DS-21.C Agent discoverability docs
+- Keep public API capability docs indexable and linkable from docs/navigation.

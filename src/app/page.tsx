@@ -1,8 +1,17 @@
 import Link from 'next/link';
 
 export default function HomePage() {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Site Permit',
+    url: process.env.APP_BASE_URL ?? 'https://example.com',
+    description: 'WorkPermitOS for permit-to-work, contractor qualifications, and induction tracking.'
+  };
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-6 p-6">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <h1 className="text-3xl font-semibold text-blue-900">Site Permit</h1>
       <p className="text-slate-700">Clean industrial Permit-to-Work and Contractor Qualification platform for SMB teams.</p>
       <div className="flex flex-wrap gap-2">

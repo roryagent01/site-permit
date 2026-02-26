@@ -92,6 +92,9 @@ This file is the source of truth for delivery tracking.
 | DS-20.B structured extraction output | PL-11.2 | done |
 | DS-20.C mapping to platform entities | PL-11.3 | done |
 | DS-20.D agent-operable OCR APIs | PL-11.4 | done |
+| DS-21.A technical SEO baseline | PL-12.1 | done |
+| DS-21.B structured metadata | PL-12.2 | done |
+| DS-21.C agent discoverability docs | PL-12.3 | done |
 
 ---
 
@@ -886,5 +889,39 @@ When any DS-linked feature is shipped:
 **Where**
 - `src/app/api/app/ocr/parse/route.ts`
 - `src/app/api/app/ocr/apply/route.ts`
+
+**Status**: done
+
+---
+
+## Phase 12 SEO & Public Discoverability (DS-21)
+
+### [x] PL-12.1 (DS-21.A) — Technical SEO baseline
+**What was built**
+- Added sitemap and robots routes
+- Added canonical/OG/twitter metadata baseline in root layout
+
+**Where**
+- `src/app/sitemap.ts`
+- `src/app/robots.ts`
+- `src/app/layout.tsx`
+
+**Status**: done
+
+### [x] PL-12.2 (DS-21.B) — Structured metadata
+**What was built**
+- Added JSON-LD WebSite schema on landing page
+
+**Where**
+- `src/app/page.tsx`
+
+**Status**: done
+
+### [x] PL-12.3 (DS-21.C) — Agent discoverability docs
+**What was built**
+- Existing agent API capability matrix published and retained as discoverable doc
+
+**Where**
+- `docs/agent-api.md`
 
 **Status**: done
