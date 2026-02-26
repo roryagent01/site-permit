@@ -900,10 +900,12 @@ When any DS-linked feature is shipped:
 **What was built**
 - Added sitemap and robots routes
 - Added canonical/OG/twitter metadata baseline in root layout
+- Added web manifest metadata route for installability/discoverability
 
 **Where**
 - `src/app/sitemap.ts`
 - `src/app/robots.ts`
+- `src/app/manifest.ts`
 - `src/app/layout.tsx`
 
 **Status**: done
@@ -911,17 +913,23 @@ When any DS-linked feature is shipped:
 ### [x] PL-12.2 (DS-21.B) — Structured metadata
 **What was built**
 - Added JSON-LD WebSite schema on landing page
+- Added JSON-LD Organization schema on How it works page
+- Added JSON-LD FAQ schema on Pricing page
 
 **Where**
 - `src/app/page.tsx`
+- `src/app/how-it-works/page.tsx`
+- `src/app/pricing/page.tsx`
 
 **Status**: done
 
 ### [x] PL-12.3 (DS-21.C) — Agent discoverability docs
 **What was built**
 - Existing agent API capability matrix published and retained as discoverable doc
+- Added public docs index page for discoverability
 
 **Where**
 - `docs/agent-api.md`
+- `src/app/docs/page.tsx`
 
 **Status**: done
