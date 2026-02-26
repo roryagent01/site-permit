@@ -41,6 +41,10 @@ export default async function DashboardPage() {
       <div className="space-y-4">
         <p className="text-sm text-slate-600">Signed in as {user.email}</p>
 
+        <div className="mb-3">
+          <Link href="/app/dashboard/sites" className="rounded-md border px-3 py-2 text-xs font-medium">Open site dashboards</Link>
+        </div>
+
         <div className="grid gap-4 md:grid-cols-3">
           <Card title="Permits (30d)">
             <p className="text-2xl font-semibold text-blue-900">{permits30d}</p>

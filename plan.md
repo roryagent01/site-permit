@@ -68,12 +68,12 @@ This file is the source of truth for delivery tracking.
 | DS-16.C contractor portal scoped access | PL-7.3 | partial |
 | DS-16.D qualification requirement packs | PL-7.4 | done |
 | DS-16.E permit preconditions checklist | PL-7.5 | done |
-| DS-16.F toolbox talk capture | PL-7.6 | todo |
+| DS-16.F toolbox talk capture | PL-7.6 | done |
 | DS-16.G needs-changes task tracking | PL-7.7 | done |
 | DS-16.H smart reminder actions | PL-7.8 | done |
-| DS-16.I expiring public share links | PL-7.9 | todo |
+| DS-16.I expiring public share links | PL-7.9 | done |
 | DS-16.J template versioning + rollback | PL-7.10 | partial |
-| DS-16.K site-level dashboards | PL-7.11 | todo |
+| DS-16.K site-level dashboards | PL-7.11 | done |
 | DS-16.L mobile field UX optimization | PL-7.12 | partial |
 | DS-17.A API parity for core capabilities | PL-8.1 | done |
 | DS-17.B machine-usable contracts | PL-8.2 | done |
@@ -533,11 +533,16 @@ When any DS-linked feature is shipped:
 
 **Status**: done
 
-### [ ] PL-7.6 (DS-16.F) — Toolbox talk / briefing capture
-**Planned**
-- Add briefing records linked to permit with participant acknowledgements
+### [x] PL-7.6 (DS-16.F) — Toolbox talk / briefing capture
+**What was built**
+- Added permit briefing model and attendee acknowledgements model
+- Added permit detail UI for creating briefings and listing attendees
 
-**Status**: todo
+**Where**
+- `db/migrations/0010_toolbox_shares_site_dashboards.sql`
+- `src/app/app/permits/[id]/page.tsx`
+
+**Status**: done
 
 ### [x] PL-7.7 (DS-16.G) — Needs-changes task tracking
 **What was built**
@@ -562,11 +567,19 @@ When any DS-linked feature is shipped:
 
 **Status**: done
 
-### [ ] PL-7.9 (DS-16.I) — Expiring public share links
-**Planned**
-- Add read-only tokenized permit links with expiry/revocation
+### [x] PL-7.9 (DS-16.I) — Expiring public share links
+**What was built**
+- Added share link + access log models
+- Added permit detail create/revoke share link actions
+- Added public read-only share endpoint with expiry/revocation checks and access logging
 
-**Status**: todo
+**Where**
+- `db/migrations/0010_toolbox_shares_site_dashboards.sql`
+- `src/app/app/permits/[id]/page.tsx`
+- `src/app/api/app/permits/[permitId]/share-links/route.ts`
+- `src/app/api/public/permits/share/[token]/route.ts`
+
+**Status**: done
 
 ### [x] PL-7.10 (DS-16.J) — Template versioning + rollback
 **What was built**
@@ -579,11 +592,16 @@ When any DS-linked feature is shipped:
 
 **Status**: partial (needs full edit flow with automatic snapshot per update and full version browser)
 
-### [ ] PL-7.11 (DS-16.K) — Site-level dashboards
-**Planned**
-- Add per-site scorecards and comparative KPIs
+### [x] PL-7.11 (DS-16.K) — Site-level dashboards
+**What was built**
+- Added site-level dashboard page with per-site permit and qualification metrics
+- Added navigation entry from main dashboard
 
-**Status**: todo
+**Where**
+- `src/app/app/dashboard/sites/page.tsx`
+- `src/app/app/dashboard/page.tsx`
+
+**Status**: done
 
 ### [x] PL-7.12 (DS-16.L) — Mobile field UX optimization
 **What was built**

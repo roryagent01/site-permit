@@ -442,6 +442,76 @@ async function toggleChecklistItemAction(formData: FormData) {
   revalidatePath(`/app/permits/${permitId}`);
 }
 
+async function addBriefingAction(formData: FormData) {
+  'use server';
+  const permitId = String(formData.get('permit_id'));
+  const title = String(formData.get('title') ?? '').trim();
+  const notes = String(formData.get('notes') ?? '').trim();
+  const attendeesRaw = String(formData.get('attendees') ?? '').trim();
+  const ctx = await getCurrentWorkspace();
+  if (!ctx || !['issuer', 'approver', 'admin', 'owner'].includes(ctx.role) || !title) return;
+
+  const attendees = attendeesRaw
+    .split(',')
+    .map((n) => n.trim())
+    .filter(Boolean);
+
+  const supabase = await createSupabaseServerClient();
+  const { data: briefing } = await supabase
+    .from('permit_briefings')
+    .insert({ workspace_id: ctx.workspaceId, permit_id: permitId, title, notes: notes || null, created_by: ctx.user.id })
+    .select('id')
+    .single();
+
+  if (briefing?.id && attendees.length) {
+    await supabase.from('permit_briefing_attendees').insert(
+      attendees.map((name) => ({ workspace_id: ctx.workspaceId, briefing_id: briefing.id, attendee_name: name, acknowledged: true }))
+    );
+  }
+
+  revalidatePath(`/app/permits/${permitId}`);
+}
+
+async function createShareLinkAction(formData: FormData) {
+  'use server';
+  const permitId = String(formData.get('permit_id'));
+  const hours = Number(formData.get('expires_in_hours') || 72);
+  const ctx = await getCurrentWorkspace();
+  if (!ctx || !['issuer', 'admin', 'owner'].includes(ctx.role)) return;
+
+  const supabase = await createSupabaseServerClient();
+  const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+  const expiresAt = new Date(Date.now() + Math.max(1, Math.min(720, hours)) * 3600 * 1000).toISOString();
+
+  await supabase.from('permit_share_links').insert({
+    workspace_id: ctx.workspaceId,
+    permit_id: permitId,
+    token,
+    expires_at: expiresAt,
+    created_by: ctx.user.id
+  });
+
+  revalidatePath(`/app/permits/${permitId}`);
+}
+
+async function revokeShareLinkAction(formData: FormData) {
+  'use server';
+  const permitId = String(formData.get('permit_id'));
+  const shareId = String(formData.get('share_id'));
+  const ctx = await getCurrentWorkspace();
+  if (!ctx || !['issuer', 'admin', 'owner'].includes(ctx.role)) return;
+
+  const supabase = await createSupabaseServerClient();
+  await supabase
+    .from('permit_share_links')
+    .update({ revoked_at: new Date().toISOString() })
+    .eq('workspace_id', ctx.workspaceId)
+    .eq('permit_id', permitId)
+    .eq('id', shareId);
+
+  revalidatePath(`/app/permits/${permitId}`);
+}
+
 async function completeTaskAction(formData: FormData) {
   'use server';
   const permitId = String(formData.get('permit_id'));
@@ -472,7 +542,7 @@ export default async function PermitDetailPage({ params }: { params: Promise<{ i
 
   if (!permit) notFound();
 
-  const [{ data: approvals }, { data: attachments }, { data: checklist }, { data: tasks }] = await Promise.all([
+  const [{ data: approvals }, { data: attachments }, { data: checklist }, { data: tasks }, { data: briefings }, { data: shareLinks }] = await Promise.all([
     supabase
       .from('permit_approvals')
       .select('id,decision,comment,decided_at,approver_user_id')
@@ -494,6 +564,18 @@ export default async function PermitDetailPage({ params }: { params: Promise<{ i
     supabase
       .from('permit_tasks')
       .select('id,title,status,due_at')
+      .eq('workspace_id', ctx.workspaceId)
+      .eq('permit_id', id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('permit_briefings')
+      .select('id,title,notes,held_at,permit_briefing_attendees(attendee_name,acknowledged)')
+      .eq('workspace_id', ctx.workspaceId)
+      .eq('permit_id', id)
+      .order('held_at', { ascending: false }),
+    supabase
+      .from('permit_share_links')
+      .select('id,token,expires_at,revoked_at,created_at')
       .eq('workspace_id', ctx.workspaceId)
       .eq('permit_id', id)
       .order('created_at', { ascending: false })
@@ -618,6 +700,53 @@ export default async function PermitDetailPage({ params }: { params: Promise<{ i
                 </li>
               ))}
               {!tasks?.length ? <li className="text-slate-500">No tasks generated.</li> : null}
+            </ul>
+          </Card>
+
+          <Card title="Toolbox talks / briefings">
+            <form action={addBriefingAction} className="mb-2 grid gap-2">
+              <input type="hidden" name="permit_id" value={permit.id} />
+              <input name="title" placeholder="Briefing title" className="rounded border px-2 py-1 text-xs" />
+              <input name="attendees" placeholder="Attendees comma-separated" className="rounded border px-2 py-1 text-xs" />
+              <input name="notes" placeholder="Notes" className="rounded border px-2 py-1 text-xs" />
+              <Button type="submit" variant="secondary" className="min-h-0 px-2 py-1 text-xs">Add briefing</Button>
+            </form>
+            <ul className="space-y-2 text-xs">
+              {briefings?.map((b) => (
+                <li key={b.id} className="rounded border p-2">
+                  <div className="font-medium">{b.title}</div>
+                  <div className="text-slate-600">{new Date(b.held_at).toLocaleString()}</div>
+                  <div className="text-slate-600">{b.notes || '-'}</div>
+                  <div className="text-slate-500">
+                    Attendees: {((b.permit_briefing_attendees as Array<{ attendee_name: string }> | null) ?? []).map((a) => a.attendee_name).join(', ') || '-'}
+                  </div>
+                </li>
+              ))}
+              {!briefings?.length ? <li className="text-slate-500">No briefings yet.</li> : null}
+            </ul>
+          </Card>
+
+          <Card title="Public share links">
+            <form action={createShareLinkAction} className="mb-2 flex items-center gap-2">
+              <input type="hidden" name="permit_id" value={permit.id} />
+              <input name="expires_in_hours" defaultValue={72} type="number" min={1} max={720} className="w-24 rounded border px-2 py-1 text-xs" />
+              <Button type="submit" variant="secondary" className="min-h-0 px-2 py-1 text-xs">Create link</Button>
+            </form>
+            <ul className="space-y-2 text-xs">
+              {shareLinks?.map((s) => (
+                <li key={s.id} className="rounded border p-2">
+                  <div className="font-medium truncate">{`${process.env.APP_BASE_URL ?? ''}/api/public/permits/share/${s.token}`}</div>
+                  <div className="text-slate-600">Expires: {new Date(s.expires_at).toLocaleString()} {s.revoked_at ? '• revoked' : ''}</div>
+                  {!s.revoked_at ? (
+                    <form action={revokeShareLinkAction} className="mt-1">
+                      <input type="hidden" name="permit_id" value={permit.id} />
+                      <input type="hidden" name="share_id" value={s.id} />
+                      <Button type="submit" variant="danger" className="min-h-0 px-2 py-1 text-xs">Revoke</Button>
+                    </form>
+                  ) : null}
+                </li>
+              ))}
+              {!shareLinks?.length ? <li className="text-slate-500">No share links yet.</li> : null}
             </ul>
           </Card>
         </div>
