@@ -33,7 +33,9 @@ export async function POST(request: Request) {
       size_bytes: parsed.data.sizeBytes ?? null,
       permit_id: parsed.data.permitId ?? null,
       contractor_qualification_id: parsed.data.contractorQualificationId ?? null,
-      uploaded_by: ctx.user.id
+      uploaded_by: ctx.user.id,
+      blocked: true,
+      block_reason: 'pending_scan'
     })
     .select('id')
     .single();

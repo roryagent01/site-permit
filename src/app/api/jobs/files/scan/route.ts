@@ -30,7 +30,10 @@ export async function POST(request: Request) {
 
     await admin
       .from('files')
-      .update({ blocked: result.status === 'quarantined', block_reason: result.reason ?? null })
+      .update({
+        blocked: result.status !== 'clean',
+        block_reason: result.status === 'clean' ? null : (result.reason ?? result.status)
+      })
       .eq('id', row.file_id);
 
     processed += 1;

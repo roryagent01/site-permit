@@ -1002,6 +1002,7 @@ When any DS-linked feature is shipped:
 **What was built**
 - Added file scan result model and scanning job endpoint
 - New uploads now create pending scan records
+- New file registrations are blocked by default (`pending_scan`) until scanner marks clean
 - Added pluggable scan engine abstraction with optional ClamAV HTTP integration and baseline fallback
 
 **Where**
@@ -1011,7 +1012,7 @@ When any DS-linked feature is shipped:
 - `src/lib/security/file-scan.ts`
 - `.env.example` (`CLAMAV_SCAN_ENDPOINT`)
 
-**Status**: partial (expand hard quarantine enforcement across all downstream file consumers)
+**Status**: partial (hard gating now enforced in current consumers; pre-storage scan-before-persist architecture still pending)
 
 ### [x] PL-13.6 (DS-22.F) — Regional date formatting and i18n baseline
 **What was built**

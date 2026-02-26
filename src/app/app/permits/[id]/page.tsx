@@ -709,7 +709,7 @@ export default async function PermitDetailPage({ params }: { params: Promise<{ i
                     <li key={f.id} className="truncate">{f.bucket}: {f.path}</li>
                   ))}
                   {(attachments?.filter((f) => f.blocked).length ?? 0) > 0 ? (
-                    <li className="text-red-600">{attachments?.filter((f) => f.blocked).length} attachment(s) quarantined and hidden.</li>
+                    <li className="text-red-600">{attachments?.filter((f) => f.blocked).length} attachment(s) blocked (pending scan/quarantined) and hidden.</li>
                   ) : null}
                   {!attachments?.length ? <li className="text-slate-500">No attachments yet.</li> : null}
                 </ul>

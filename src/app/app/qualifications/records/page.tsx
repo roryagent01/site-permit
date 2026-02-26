@@ -116,7 +116,7 @@ export default async function QualificationRecordsPage() {
                     {(evidenceByRecord.get(r.id) ?? []).slice(0, 3).map((p) => (
                       <li key={p} className="truncate">{p}</li>
                     ))}
-                    {(quarantinedByRecord.get(r.id) ?? 0) > 0 ? <li className="text-red-600">{quarantinedByRecord.get(r.id)} quarantined file(s) hidden.</li> : null}
+                    {(quarantinedByRecord.get(r.id) ?? 0) > 0 ? <li className="text-red-600">{quarantinedByRecord.get(r.id)} blocked file(s) hidden (pending scan/quarantined).</li> : null}
                     {(evidenceByRecord.get(r.id) ?? []).length === 0 ? <li>No evidence uploaded yet.</li> : null}
                   </ul>
                 </div>
