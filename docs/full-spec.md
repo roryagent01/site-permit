@@ -685,3 +685,34 @@ A workspace can:
 
 ### DS-21.C Agent discoverability docs
 - Keep public API capability docs indexable and linkable from docs/navigation.
+
+---
+
+## DS-22 Gap Remediation & V1.1 Enhancements (New)
+
+### DS-22.A Native OCR processing from uploaded files
+- Support direct OCR processing from uploaded PDFs/images without requiring pre-extracted text input.
+- Add pluggable OCR engine integration (e.g., cloud OCR or local OCR service) with fallback/error handling.
+
+### DS-22.B Audit log UX completeness
+- Provide full audit log UI in `/app/admin` with table, filters, and pagination for workspace admins.
+
+### DS-22.C Self-serve billing automation
+- Integrate payment gateway (Stripe) for self-serve subscription onboarding and plan upgrades.
+- Replace manual billing dependency for Starter/Growth/Scale hosted SaaS flow.
+
+### DS-22.D Offline tolerance (PWA-lite)
+- Add service worker strategy to support temporary offline permit drafting and queued submission retry.
+- Prioritize permit create/submit flow resilience for field conditions.
+
+### DS-22.E Malware scanning for uploaded evidence
+- Scan uploaded evidence files before permanent acceptance/storage.
+- Quarantine or block suspicious files and surface safe user messaging.
+
+### DS-22.F Regional date formatting and i18n baseline
+- Default to locale-aware date formatting with strong support for DD/MM/YYYY in target markets.
+- Prevent ambiguity for permit validity and expiry-critical dates.
+
+### DS-22.G Large-list pagination and filtering hardening
+- Add server-side pagination and robust filtering for high-volume lists (`permits`, `contractors`, etc.).
+- Ensure performance remains stable at Scale tier volumes.

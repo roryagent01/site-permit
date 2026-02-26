@@ -95,6 +95,13 @@ This file is the source of truth for delivery tracking.
 | DS-21.A technical SEO baseline | PL-12.1 | done |
 | DS-21.B structured metadata | PL-12.2 | done |
 | DS-21.C agent discoverability docs | PL-12.3 | done |
+| DS-22.A native OCR processing from uploaded files | PL-13.1 | todo |
+| DS-22.B audit log UX completeness | PL-13.2 | partial |
+| DS-22.C self-serve billing automation | PL-13.3 | todo |
+| DS-22.D offline tolerance (PWA-lite) | PL-13.4 | todo |
+| DS-22.E malware scanning for uploads | PL-13.5 | todo |
+| DS-22.F regional date formatting and i18n baseline | PL-13.6 | todo |
+| DS-22.G high-volume pagination/filtering hardening | PL-13.7 | partial |
 
 ---
 
@@ -933,3 +940,63 @@ When any DS-linked feature is shipped:
 - `src/app/docs/page.tsx`
 
 **Status**: done
+
+---
+
+## Phase 13 Gap Remediation & V1.1 Enhancements (DS-22)
+
+### [ ] PL-13.1 (DS-22.A) — Native OCR processing from uploaded files
+**Planned**
+- Add OCR backend integration for direct PDF/image parsing from uploaded files
+- Support engine abstraction + retry/failure handling
+- Connect OCR parse route to actual file pipeline instead of text-only mode
+
+**Status**: todo
+
+### [x] PL-13.2 (DS-22.B) — Audit log UX completeness
+**What was built**
+- Admin page includes audit event listing for workspace context
+
+**Where**
+- `src/app/app/admin/page.tsx`
+
+**Status**: partial (needs dedicated filters/pagination/search and richer event payload drill-down)
+
+### [ ] PL-13.3 (DS-22.C) — Self-serve billing automation (Stripe)
+**Planned**
+- Add Stripe checkout/portal integration for plans and subscription lifecycle
+- Replace manual billing dependency for SMB self-serve flow
+
+**Status**: todo
+
+### [ ] PL-13.4 (DS-22.D) — Offline tolerance (PWA-lite)
+**Planned**
+- Add service worker and local queue for permit draft/submit when offline
+- Add retry/reconciliation UX when connectivity is restored
+
+**Status**: todo
+
+### [ ] PL-13.5 (DS-22.E) — Malware scanning for uploads
+**Planned**
+- Introduce upload scanning pipeline before durable acceptance
+- Add quarantine + failure messaging path
+
+**Status**: todo
+
+### [ ] PL-13.6 (DS-22.F) — Regional date formatting and i18n baseline
+**Planned**
+- Add locale-aware formatting defaults and user/workspace date preferences
+- Ensure DD/MM/YYYY-safe display and validation in EU workflows
+
+**Status**: todo
+
+### [x] PL-13.7 (DS-22.G) — Pagination/filtering hardening
+**What was built**
+- Baseline filtering exists in permits/reminders/contractors flows
+
+**Where**
+- `src/app/app/permits/calendar/page.tsx`
+- `src/app/app/contractors/page.tsx`
+- `src/app/app/reminders/page.tsx`
+
+**Status**: partial (needs consistent server-side pagination and advanced filters on all high-volume lists)
