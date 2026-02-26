@@ -1,4 +1,11 @@
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { writeFile, readFile, rm } from 'node:fs/promises';
+import { execFile as execFileCb } from 'node:child_process';
+import { promisify } from 'node:util';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+
+const execFile = promisify(execFileCb);
 
 export type OcrEngineResult = {
   ok: boolean;
@@ -47,13 +54,63 @@ async function callHttpEngine(bytes: Uint8Array, mimeType: string): Promise<OcrE
   }
 }
 
-function fallbackLocal(bytes: Uint8Array, mimeType: string): OcrEngineResult {
+async function localPdfToText(bytes: Uint8Array): Promise<OcrEngineResult> {
+  const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const pdfPath = join(tmpdir(), `ocr-${id}.pdf`);
+  const outPath = join(tmpdir(), `ocr-${id}.txt`);
+
+  try {
+    await writeFile(pdfPath, bytes);
+    await execFile('pdftotext', [pdfPath, outPath], { timeout: 20_000 });
+    const text = (await readFile(outPath, 'utf8')).trim();
+    if (!text) return { ok: false, engine: 'local-pdftotext', reason: 'empty_text' };
+    return { ok: true, engine: 'local-pdftotext', text };
+  } catch {
+    return { ok: false, engine: 'local-pdftotext', reason: 'pdftotext_unavailable_or_failed' };
+  } finally {
+    await rm(pdfPath, { force: true }).catch(() => undefined);
+    await rm(outPath, { force: true }).catch(() => undefined);
+  }
+}
+
+async function localImageTesseract(bytes: Uint8Array, extensionHint: string): Promise<OcrEngineResult> {
+  const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const extn = extensionHint || 'png';
+  const imgPath = join(tmpdir(), `ocr-${id}.${extn}`);
+  const outBase = join(tmpdir(), `ocr-${id}`);
+  const outTxt = `${outBase}.txt`;
+
+  try {
+    await writeFile(imgPath, bytes);
+    await execFile('tesseract', [imgPath, outBase], { timeout: 30_000 });
+    const text = (await readFile(outTxt, 'utf8')).trim();
+    if (!text) return { ok: false, engine: 'local-tesseract', reason: 'empty_text' };
+    return { ok: true, engine: 'local-tesseract', text };
+  } catch {
+    return { ok: false, engine: 'local-tesseract', reason: 'tesseract_unavailable_or_failed' };
+  } finally {
+    await rm(imgPath, { force: true }).catch(() => undefined);
+    await rm(outTxt, { force: true }).catch(() => undefined);
+  }
+}
+
+async function localEngine(bytes: Uint8Array, mimeType: string, filePath: string): Promise<OcrEngineResult> {
   if (mimeType === 'text/plain') {
     const text = Buffer.from(bytes).toString('utf8').trim();
     if (text) return { ok: true, engine: 'local-text', text };
     return { ok: false, engine: 'local-text', reason: 'empty_text' };
   }
-  return { ok: false, engine: 'local-text', reason: 'unsupported_without_ocr_engine' };
+
+  if (mimeType === 'application/pdf') {
+    return localPdfToText(bytes);
+  }
+
+  if (mimeType.startsWith('image/')) {
+    const extensionHint = ext(filePath);
+    return localImageTesseract(bytes, extensionHint);
+  }
+
+  return { ok: false, engine: 'local', reason: 'unsupported_file_type' };
 }
 
 export async function extractTextFromStoredFile(input: { bucket: string; path: string; retries?: number }): Promise<OcrEngineResult> {
@@ -72,8 +129,12 @@ export async function extractTextFromStoredFile(input: { bucket: string; path: s
     last = http;
   }
 
-  const local = fallbackLocal(bytes, mimeType);
+  const local = await localEngine(bytes, mimeType, input.path);
   if (local.ok) return local;
 
-  return last.reason === 'ocr_http_endpoint_missing' ? local : last;
+  if (last.reason !== 'ocr_http_endpoint_missing') {
+    return { ok: false, engine: `${last.engine}+${local.engine}`, reason: `${last.reason};${local.reason}` };
+  }
+
+  return local;
 }

@@ -694,7 +694,8 @@ A workspace can:
 - Support direct OCR processing from uploaded PDFs/images without requiring pre-extracted text input.
 - Add pluggable OCR engine integration (e.g., cloud OCR or local OCR service) with fallback/error handling.
 - Implemented in V1.1 as file-based OCR ingestion via `fileId` + pluggable HTTP OCR adapter with retries and failure capture.
-- **Status:** partial (non-text files require configured external OCR endpoint; local OCR binary engine not bundled).
+- Added bundled local OCR fallback path (`pdftotext` for PDFs, `tesseract` for images, text parser for plain text files).
+- **Status:** done.
 
 ### DS-22.B Audit log UX completeness
 - Provide full audit log UI in `/app/admin` with table, filters, and pagination for workspace admins.

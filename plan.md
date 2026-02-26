@@ -95,7 +95,7 @@ This file is the source of truth for delivery tracking.
 | DS-21.A technical SEO baseline | PL-12.1 | done |
 | DS-21.B structured metadata | PL-12.2 | done |
 | DS-21.C agent discoverability docs | PL-12.3 | done |
-| DS-22.A native OCR processing from uploaded files | PL-13.1 | partial |
+| DS-22.A native OCR processing from uploaded files | PL-13.1 | done |
 | DS-22.B audit log UX completeness | PL-13.2 | done |
 | DS-22.C self-serve billing automation | PL-13.3 | done |
 | DS-22.D offline tolerance (PWA-lite) | PL-13.4 | done |
@@ -958,7 +958,7 @@ When any DS-linked feature is shipped:
 - `src/app/app/training/page.tsx`
 - `.env.example` (`OCR_HTTP_ENDPOINT`, `OCR_HTTP_API_KEY`)
 
-**Status**: partial (full binary/PDF local OCR fallback engine not included; requires external OCR provider for non-text files)
+**Status**: done (native file OCR now supports external provider and local fallback engines for PDF/image/text)
 
 ### [x] PL-13.2 (DS-22.B) — Audit log UX completeness
 **What was built**
