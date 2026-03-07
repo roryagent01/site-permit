@@ -1,4 +1,4 @@
-# Site Permit (WorkPermitOS)
+# Permit Pass (WorkPermitOS)
 
 WorkPermitOS is a multi-tenant Permit-to-Work and Contractor Qualification SaaS for SMBs.
 

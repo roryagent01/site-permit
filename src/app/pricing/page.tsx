@@ -18,7 +18,7 @@ const tiers = [
 
 const faqs = [
   {
-    q: 'Does Site Permit support contractor onboarding?',
+    q: 'Does Permit Pass support contractor onboarding?',
     a: 'Yes, internal employee invites and contractor self-onboarding links are built in.'
   },
   {

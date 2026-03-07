@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 
 type Draft = { title: string; location: string; start_at: string; end_at: string; template_id: string; contractor_id: string };
-const DRAFT_KEY = 'site-permit:offline-draft:new-permit';
-const QUEUE_KEY = 'site-permit:offline-queue:new-permit';
+const DRAFT_KEY = 'permit-pass:offline-draft:new-permit';
+const QUEUE_KEY = 'permit-pass:offline-queue:new-permit';
 
 function getQueue(): Draft[] {
   try {

@@ -10,7 +10,7 @@ export default function HowItWorksPage() {
   const orgJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
-    name: 'Site Permit',
+    name: 'Permit Pass',
     url: process.env.APP_BASE_URL ?? 'https://example.com',
     description: 'WorkPermitOS: permit-to-work, contractor qualifications, and induction workflows for SMB teams.'
   };

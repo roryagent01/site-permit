@@ -19,7 +19,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
     <div className="min-h-screen bg-slate-50">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-          <h1 className="text-lg font-semibold text-blue-900">Site Permit</h1>
+          <h1 className="text-lg font-semibold text-blue-900">Permit Pass</h1>
           <Link className="rounded-md border border-slate-300 px-3 py-2 text-sm" href="/auth/login">
             Account
           </Link>

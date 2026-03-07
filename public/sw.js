@@ -1,4 +1,4 @@
-const CACHE_NAME = 'site-permit-v1';
+const CACHE_NAME = 'permit-pass-v1';
 const OFFLINE_URLS = ['/', '/auth/login', '/app/permits/new'];
 
 self.addEventListener('install', (event) => {

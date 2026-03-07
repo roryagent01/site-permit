@@ -5,19 +5,19 @@ import { RegisterServiceWorker } from '@/components/pwa/register-sw';
 export const metadata = {
   metadataBase: new URL(process.env.APP_BASE_URL ?? 'https://example.com'),
   title: {
-    default: 'Site Permit | WorkPermitOS',
-    template: '%s | Site Permit'
+    default: 'Permit Pass | WorkPermitOS',
+    template: '%s | Permit Pass'
   },
   description: 'WorkPermitOS for SMB permit-to-work, contractor qualifications, training induction, and audit-ready workflows.',
   alternates: { canonical: '/' },
   openGraph: {
-    title: 'Site Permit | WorkPermitOS',
+    title: 'Permit Pass | WorkPermitOS',
     description: 'Permit-to-work and contractor compliance operations for SMB teams.',
     type: 'website'
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Site Permit | WorkPermitOS',
+    title: 'Permit Pass | WorkPermitOS',
     description: 'Permit-to-work and contractor compliance operations for SMB teams.'
   }
 };

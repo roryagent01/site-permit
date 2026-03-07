@@ -4,7 +4,7 @@ export default function HomePage() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: 'Site Permit',
+    name: 'Permit Pass',
     url: process.env.APP_BASE_URL ?? 'https://example.com',
     description: 'WorkPermitOS for permit-to-work, contractor qualifications, and induction tracking.'
   };
@@ -12,7 +12,7 @@ export default function HomePage() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-6 p-6">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <h1 className="text-3xl font-semibold text-blue-900">Site Permit</h1>
+      <h1 className="text-3xl font-semibold text-blue-900">Permit Pass</h1>
       <p className="text-slate-700">Clean industrial Permit-to-Work and Contractor Qualification platform for SMB teams.</p>
       <div className="flex flex-wrap gap-2">
         <Link href="/pricing" className="rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white">Pricing</Link>

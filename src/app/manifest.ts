@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Site Permit | WorkPermitOS',
+    name: 'Permit Pass | WorkPermitOS',
     short_name: 'SitePermit',
     description: 'Permit-to-work and contractor compliance operations for SMB teams.',
     start_url: '/',

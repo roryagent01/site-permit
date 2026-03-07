@@ -69,7 +69,7 @@ Behavior:
 ```bash
 # Reminder digest
 openclaw cron add \
-  --name "site-permit-reminder-digest-daily" \
+  --name "permit-pass-reminder-digest-daily" \
   --cron "0 7 * * *" \
   --tz "Europe/Dublin" \
   --session isolated \
@@ -77,7 +77,7 @@ openclaw cron add \
 
 # Permit auto-activation every 5 minutes
 openclaw cron add \
-  --name "site-permit-activate-approved" \
+  --name "permit-pass-activate-approved" \
   --every 5m \
   --session isolated \
   --message "POST https://<app-domain>/api/jobs/permits/activate with x-cron-secret"
